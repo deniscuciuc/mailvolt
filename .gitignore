@@ -51,3 +51,4 @@ coverage/
 TestResults/
 # Example appsettings (credentials)
 **/appsettings.json
+testlog.*
