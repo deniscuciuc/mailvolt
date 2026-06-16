@@ -1,0 +1,43 @@
+<Project>
+  <PropertyGroup>
+    <!--
+      net10.0 = PRIMARY target (LTS until Nov 2028, C# 14, best perf)
+      net9.0  = STS, supported until Nov 2026
+      net8.0  = LTS, minimum bar for broad ecosystem compat
+    -->
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Explicitly pin C# 14 -->
+    <LangVersion>14</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- AOT / trimming annotations — only relevant for Core library -->
+    <IsAotCompatible Condition="'$(TargetFramework)' == 'net10.0' AND '$(MSBuildProjectName)' == 'MailVolt.Core'">true</IsAotCompatible>
+    <EnableTrimAnalyzer Condition="'$(TargetFramework)' == 'net10.0' AND '$(MSBuildProjectName)' == 'MailVolt.Core'">true</EnableTrimAnalyzer>
+    <SuppressTrimAnalysisWarnings Condition="'$(TargetFramework)' != 'net10.0' OR '$(MSBuildProjectName)' != 'MailVolt.Core'">true</SuppressTrimAnalysisWarnings>
+    <Authors>Denis Cuciuc</Authors>
+    <Company>Denis Cuciuc</Company>
+    <Copyright>Copyright © 2026 Denis Cuciuc</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/deniscuciuc/mailvolt</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/deniscuciuc/mailvolt</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>email;mail;smtp;sendgrid;mailgun;resend;postmark;dotnet;csharp;net10</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <Deterministic>true</Deterministic>
+    <!-- Suppress NuGet vulnerability warnings for transitive dependencies and AOT/trimming analysis for config binding -->
+    <NoWarn>$(NoWarn);NU1902;NU1903;NU1506;IL2026;IL3050</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="MailVolt.Core.Tests" />
+    <InternalsVisibleTo Include="MailVolt.Transport.Tests" />
+    <InternalsVisibleTo Include="MailVolt.Templates.Tests" />
+    <InternalsVisibleTo Include="MailVolt.Integration.Tests" />
+  </ItemGroup>
+</Project>

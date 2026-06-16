@@ -1,0 +1,28 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/Sample.AspNetCore/Sample.AspNetCore.csproj" />
+    <Project Path="samples/Sample.MinimalApi/Sample.MinimalApi.csproj" />
+    <Project Path="samples/Sample.WorkerService/Sample.WorkerService.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/MailVolt.Core/MailVolt.Core.csproj" />
+    <Project Path="src/MailVolt.Templates.Handlebars/MailVolt.Templates.Handlebars.csproj" />
+    <Project Path="src/MailVolt.Templates.Liquid/MailVolt.Templates.Liquid.csproj" />
+    <Project Path="src/MailVolt.Templates.Razor/MailVolt.Templates.Razor.csproj" />
+    <Project Path="src/MailVolt.Testing/MailVolt.Testing.csproj" />
+    <Project Path="src/MailVolt.Transport.AwsSes/MailVolt.Transport.AwsSes.csproj" />
+    <Project Path="src/MailVolt.Transport.AzureEmail/MailVolt.Transport.AzureEmail.csproj" />
+    <Project Path="src/MailVolt.Transport.Brevo/MailVolt.Transport.Brevo.csproj" />
+    <Project Path="src/MailVolt.Transport.Mailgun/MailVolt.Transport.Mailgun.csproj" />
+    <Project Path="src/MailVolt.Transport.Postmark/MailVolt.Transport.Postmark.csproj" />
+    <Project Path="src/MailVolt.Transport.Resend/MailVolt.Transport.Resend.csproj" />
+    <Project Path="src/MailVolt.Transport.SendGrid/MailVolt.Transport.SendGrid.csproj" />
+    <Project Path="src/MailVolt.Transport.Smtp/MailVolt.Transport.Smtp.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MailVolt.Core.Tests/MailVolt.Core.Tests.csproj" />
+    <Project Path="tests/MailVolt.Integration.Tests/MailVolt.Integration.Tests.csproj" />
+    <Project Path="tests/MailVolt.Templates.Tests/MailVolt.Templates.Tests.csproj" />
+    <Project Path="tests/MailVolt.Transport.Tests/MailVolt.Transport.Tests.csproj" />
+  </Folder>
+</Solution>
