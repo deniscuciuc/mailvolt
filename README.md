@@ -15,6 +15,36 @@
 | No test helpers | `InMemorySender` + FluentAssertions |
 | RazorLight dependency | Native ASP.NET Core Razor |
 
+## Quick Start (AutoConfigure)
+
+```
+dotnet add package MailVolt.AutoConfigure
+```
+
+```json
+{
+  "MailVolt": {
+    "From": { "Address": "noreply@example.com", "DisplayName": "My App" },
+    "Transport": "Smtp",
+    "Templates": "Razor",
+    "Smtp": {
+      "Host": "smtp.mailtrap.io",
+      "Port": 587,
+      "Username": "USER",
+      "Password": "PASS"
+    }
+  }
+}
+```
+
+```csharp
+// Program.cs — one line, everything from config
+builder.Services.AddMailVolt(builder.Configuration);
+```
+
+Switch providers without changing code — just update `Transport` in config and add the matching section.
+Supports: `Smtp` · `SendGrid` · `Mailgun` · `Resend` · `Postmark` · `Azure` · `Brevo` · `AwsSes` · `InMemory`
+
 ## Quick Start
 
 ```csharp
@@ -46,6 +76,7 @@ var result = await builder
 | Package | Command |
 |---|---|
 | Core | `dotnet add package MailVolt.Core` |
+| `MailVolt.AutoConfigure` | Zero-code setup — configure everything via appsettings.json |
 | Testing | `dotnet add package MailVolt.Testing` |
 | Templates: Razor | `dotnet add package MailVolt.Templates.Razor` |
 | Templates: Liquid | `dotnet add package MailVolt.Templates.Liquid` |
