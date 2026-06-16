@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>14</LangVersion>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/MailVolt.Core/MailVolt.Core.csproj" />
+    <ProjectReference Include="../../src/MailVolt.Transport.Smtp/MailVolt.Transport.Smtp.csproj" />
+    <ProjectReference Include="../../src/MailVolt.Templates.Liquid/MailVolt.Templates.Liquid.csproj" />
+    <ProjectReference Include="../../src/MailVolt.Testing/MailVolt.Testing.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Templates/**/*.liquid">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

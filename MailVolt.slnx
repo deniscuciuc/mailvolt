@@ -1,4 +1,21 @@
 <Solution>
+  <Folder Name="/examples/">
+    <Project Path="examples/01-console-smtp-razor/01-console-smtp-razor.csproj" />
+    <Project Path="examples/02-console-sendgrid-liquid/02-console-sendgrid-liquid.csproj" />
+    <Project Path="examples/03-console-mailgun-handlebars/03-console-mailgun-handlebars.csproj" />
+    <Project Path="examples/04-console-resend-batch/04-console-resend-batch.csproj" />
+    <Project Path="examples/05-minimalapi-smtp/05-minimalapi-smtp.csproj" />
+    <Project Path="examples/06-worker-scheduler/06-worker-scheduler.csproj" />
+    <Project Path="examples/07-inline-images/07-inline-images.csproj" />
+    <Project Path="examples/08-multi-provider-fallback/08-multi-provider-fallback.csproj" />
+  </Folder>
+  <Folder Name="/examples/09-testing-demo/" />
+  <Folder Name="/examples/09-testing-demo/src/">
+    <Project Path="examples/09-testing-demo/src/09-testing-demo.csproj" />
+  </Folder>
+  <Folder Name="/examples/09-testing-demo/tests/">
+    <Project Path="examples/09-testing-demo/tests/09-testing-demo.Tests.csproj" />
+  </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/Sample.AspNetCore/Sample.AspNetCore.csproj" />
     <Project Path="samples/Sample.MinimalApi/Sample.MinimalApi.csproj" />

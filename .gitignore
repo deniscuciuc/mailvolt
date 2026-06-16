@@ -39,6 +39,9 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
+## Appsettings (credentials)
+examples/**/appsettings.json
+
 ## Coverage
 coverage/
 *.coverage
@@ -46,3 +49,5 @@ coverage/
 
 ## Test results
 TestResults/
+# Example appsettings (credentials)
+**/appsettings.json

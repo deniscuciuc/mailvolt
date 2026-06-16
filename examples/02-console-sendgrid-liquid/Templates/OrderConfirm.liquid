@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"/></head>
+<body style="font-family: Arial, sans-serif; padding: 20px;">
+  <h2>Order #{{ order_id }} Confirmed ✅</h2>
+  <p>Hi {{ customer_name }},</p>
+  <p>Your order of <strong>{{ item_count }} item(s)</strong> totalling
+     <strong>{{ total }}</strong> is confirmed.</p>
+  <table border="1" cellpadding="8" style="border-collapse:collapse; width:100%;">
+    <tr style="background:#f0f0f0;">
+      <th>Item</th><th>Qty</th><th>Price</th>
+    </tr>
+    {% for item in items %}
+    <tr>
+      <td>{{ item.name }}</td>
+      <td>{{ item.qty }}</td>
+      <td>{{ item.price }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p style="color:#888; font-size:12px;">Thank you for your purchase!</p>
+</body>
+</html>

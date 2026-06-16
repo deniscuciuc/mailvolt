@@ -1,0 +1,29 @@
+@model InvoiceModel
+<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; padding: 24px;">
+  <!-- Inline image: src="cid:{ContentId}" -->
+  <img src="cid:company-logo" alt="Company Logo" style="height:40px; margin-bottom:16px;"/>
+  <hr/>
+  <h2>Invoice #@Model.InvoiceNumber</h2>
+  <p>Bill to: <strong>@Model.CustomerName</strong></p>
+  <table style="width:100%; border-collapse:collapse;">
+    <tr style="background:#f0f0f0;">
+      <th style="padding:8px; text-align:left;">Description</th>
+      <th style="padding:8px; text-align:right;">Amount</th>
+    </tr>
+    @foreach (var line in Model.Lines)
+    {
+      <tr>
+        <td style="padding:8px; border-top:1px solid #eee;">@line.Description</td>
+        <td style="padding:8px; border-top:1px solid #eee; text-align:right;">@line.Amount</td>
+      </tr>
+    }
+    <tr style="font-weight:bold;">
+      <td style="padding:8px; border-top:2px solid #333;">Total</td>
+      <td style="padding:8px; border-top:2px solid #333; text-align:right;">@Model.Total</td>
+    </tr>
+  </table>
+  <p style="color:#999; font-size:12px; margin-top:24px;">Due date: @Model.DueDate.ToString("MMMM dd, yyyy")</p>
+</body>
+</html>
