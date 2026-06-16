@@ -16,11 +16,6 @@
   <Folder Name="/examples/09-testing-demo/tests/">
     <Project Path="examples/09-testing-demo/tests/09-testing-demo.Tests.csproj" />
   </Folder>
-  <Folder Name="/samples/">
-    <Project Path="samples/Sample.AspNetCore/Sample.AspNetCore.csproj" />
-    <Project Path="samples/Sample.MinimalApi/Sample.MinimalApi.csproj" />
-    <Project Path="samples/Sample.WorkerService/Sample.WorkerService.csproj" />
-  </Folder>
   <Folder Name="/src/">
     <Project Path="src/MailVolt.Core/MailVolt.Core.csproj" />
     <Project Path="src/MailVolt.Templates.Handlebars/MailVolt.Templates.Handlebars.csproj" />
