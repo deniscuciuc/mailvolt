@@ -17,6 +17,7 @@
     <Project Path="examples/09-testing-demo/tests/09-testing-demo.Tests.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/MailVolt.AutoConfigure/MailVolt.AutoConfigure.csproj" />
     <Project Path="src/MailVolt.Core/MailVolt.Core.csproj" />
     <Project Path="src/MailVolt.Templates.Handlebars/MailVolt.Templates.Handlebars.csproj" />
     <Project Path="src/MailVolt.Templates.Liquid/MailVolt.Templates.Liquid.csproj" />
@@ -32,6 +33,7 @@
     <Project Path="src/MailVolt.Transport.Smtp/MailVolt.Transport.Smtp.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/MailVolt.AutoConfigure.Tests/MailVolt.AutoConfigure.Tests.csproj" />
     <Project Path="tests/MailVolt.Core.Tests/MailVolt.Core.Tests.csproj" />
     <Project Path="tests/MailVolt.Integration.Tests/MailVolt.Integration.Tests.csproj" />
     <Project Path="tests/MailVolt.Templates.Tests/MailVolt.Templates.Tests.csproj" />

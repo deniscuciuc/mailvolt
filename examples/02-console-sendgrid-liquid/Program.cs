@@ -16,8 +16,10 @@ var host = Host.CreateDefaultBuilder(args)
         .AddEnvironmentVariables("MAILVOLT_"))
     .ConfigureServices((ctx, services) =>
     {
+        var defaultFrom = ctx.Configuration["MailVolt:DefaultFromAddress"] ?? "dryrun@example.com";
+
         var mv = services.AddMailVolt(opts =>
-            opts.DefaultFromAddress = ctx.Configuration["MailVolt:DefaultFromAddress"]!);
+            opts.DefaultFromAddress = defaultFrom);
 
         if (dryRun) mv.UseInMemoryTransport();
         else        mv.AddSendGridSender(ctx.Configuration);

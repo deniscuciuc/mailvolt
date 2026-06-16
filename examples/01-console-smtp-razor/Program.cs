@@ -16,10 +16,13 @@ var host = Host.CreateDefaultBuilder(args)
         .AddEnvironmentVariables("MAILVOLT_"))
     .ConfigureServices((ctx, services) =>
     {
+        var defaultFrom = ctx.Configuration["MailVolt:DefaultFromAddress"] ?? "dryrun@example.com";
+        var defaultDisplayName = ctx.Configuration["MailVolt:DefaultFromDisplayName"];
+
         var builder = services.AddMailVolt(opts =>
         {
-            opts.DefaultFromAddress = ctx.Configuration["MailVolt:DefaultFromAddress"]!;
-            opts.DefaultFromDisplayName = ctx.Configuration["MailVolt:DefaultFromDisplayName"];
+            opts.DefaultFromAddress = defaultFrom;
+            opts.DefaultFromDisplayName = defaultDisplayName;
         });
 
         if (dryRun)
