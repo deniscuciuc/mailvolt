@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <NoWarn>CS1591;CS8600;CS8602;CS8625;CS8714;CS9113</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MailVolt.Core\MailVolt.Core.csproj" />
+    <ProjectReference Include="..\..\src\MailVolt.Testing\MailVolt.Testing.csproj" />
+    <ProjectReference Include="..\..\src\MailVolt.Templates.Liquid\MailVolt.Templates.Liquid.csproj" />
+    <ProjectReference Include="..\..\src\MailVolt.Templates.Handlebars\MailVolt.Templates.Handlebars.csproj" />
+    <ProjectReference Include="..\..\src\MailVolt.Templates.Razor\MailVolt.Templates.Razor.csproj" />
+  </ItemGroup>
+</Project>
