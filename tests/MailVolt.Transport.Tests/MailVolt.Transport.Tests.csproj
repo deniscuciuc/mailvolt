@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <NoWarn>CS1591;CS8600;CS8602;CS8625;CS8714</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MailVolt.Core\MailVolt.Core.csproj" />
+    <ProjectReference Include="..\..\src\MailVolt.Testing\MailVolt.Testing.csproj" />
+    <ProjectReference Include="..\..\src\MailVolt.Transport.Smtp\MailVolt.Transport.Smtp.csproj" />
+    <ProjectReference Include="..\..\src\MailVolt.Transport.Mailgun\MailVolt.Transport.Mailgun.csproj" />
+    <ProjectReference Include="..\..\src\MailVolt.Transport.SendGrid\MailVolt.Transport.SendGrid.csproj" />
+    <ProjectReference Include="..\..\src\MailVolt.Transport.Resend\MailVolt.Transport.Resend.csproj" />
+    <ProjectReference Include="..\..\src\MailVolt.Transport.Postmark\MailVolt.Transport.Postmark.csproj" />
+    <ProjectReference Include="..\..\src\MailVolt.Transport.AzureEmail\MailVolt.Transport.AzureEmail.csproj" />
+    <ProjectReference Include="..\..\src\MailVolt.Transport.Brevo\MailVolt.Transport.Brevo.csproj" />
+    <ProjectReference Include="..\..\src\MailVolt.Transport.AwsSes\MailVolt.Transport.AwsSes.csproj" />
+  </ItemGroup>
+</Project>
