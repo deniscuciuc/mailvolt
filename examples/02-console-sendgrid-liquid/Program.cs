@@ -13,7 +13,7 @@ var dryRun = args.Contains("--dry-run");
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration(cfg => cfg
         .AddJsonFile("appsettings.json", optional: true)
-        .AddEnvironmentVariables("MAILVOLT_"))
+        .AddEnvironmentVariables())
     .ConfigureServices((ctx, services) =>
     {
         var defaultFrom = ctx.Configuration["MailVolt:DefaultFromAddress"] ?? "dryrun@example.com";
@@ -22,7 +22,7 @@ var host = Host.CreateDefaultBuilder(args)
             opts.DefaultFromAddress = defaultFrom);
 
         if (dryRun) mv.UseInMemoryTransport();
-        else        mv.AddSendGridSender(ctx.Configuration);
+        else mv.AddSendGridSender(ctx.Configuration);
 
         mv.UseLiquidTemplates();
     })
@@ -30,10 +30,10 @@ var host = Host.CreateDefaultBuilder(args)
 
 var model = new
 {
-    order_id     = "ORD-20260616-001",
+    order_id = "ORD-20260616-001",
     customer_name = "Denis",
-    item_count   = 3,
-    total        = "$149.00",
+    item_count = 3,
+    total = "$149.00",
     items = new[]
     {
         new { name = "MailVolt T-Shirt", qty = 1, price = "$29.00" },

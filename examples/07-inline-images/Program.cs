@@ -13,14 +13,15 @@ var dryRun = args.Contains("--dry-run");
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration(cfg => cfg
         .AddJsonFile("appsettings.json", optional: true)
-        .AddEnvironmentVariables("MAILVOLT_"))
+        .AddEnvironmentVariables())
     .ConfigureServices((ctx, services) =>
     {
+        var defaultFrom = ctx.Configuration["MailVolt:DefaultFromAddress"] ?? "dryrun@example.com";
         var mv = services.AddMailVolt(opts =>
-            opts.DefaultFromAddress = ctx.Configuration["MailVolt:DefaultFromAddress"]!);
+            opts.DefaultFromAddress = defaultFrom);
 
         if (dryRun) mv.UseInMemoryTransport();
-        else        mv.UseSmtpTransport(ctx.Configuration);
+        else mv.UseSmtpTransport(ctx.Configuration);
 
         mv.UseRazorTemplates();
     })
@@ -28,8 +29,8 @@ var host = Host.CreateDefaultBuilder(args)
 
 var model = new InvoiceModel(
     InvoiceNumber: "INV-2026-0042",
-    CustomerName:  "Denis Cuciuc",
-    DueDate:       DateOnly.FromDateTime(DateTime.Today.AddDays(30)),
+    CustomerName: "Denis Cuciuc",
+    DueDate: DateOnly.FromDateTime(DateTime.Today.AddDays(30)),
     Lines:
     [
         new("MailVolt Pro License · 1 year", "$199.00"),

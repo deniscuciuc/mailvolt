@@ -50,6 +50,25 @@ builder.Services.AddMailVolt()
     });
 ```
 
+When `UseNativeTemplates` is enabled, reserve these `EmailMessage.Headers` keys for Mailgun template sends:
+
+- `X-MailVolt-Template` → mapped to Mailgun's `template` form field
+- `X-MailVolt-Template-Variables` → mapped to Mailgun's `t:variables` JSON field
+
+Example:
+
+```csharp
+return await _builder
+    .From("orders@example.com")
+    .To(email)
+    .Subject($"Order #{orderId} Confirmed")
+    .Header("X-MailVolt-Template", "order-confirmation")
+    .Header("X-MailVolt-Template-Variables", """{"orderId":42,"customer":"Alice"}""")
+    .SendAsync();
+```
+
+When a Mailgun native template is selected this way, MailVolt omits `text` and `html` form fields so Mailgun renders the body from the provider-side template.
+
 ```csharp
 public class OrderService
 {
@@ -79,7 +98,8 @@ public class OrderService
   "MailVolt": {
     "Mailgun": {
       "ApiKey": "your-api-key",
-      "Domain": "mg.example.com"
+      "Domain": "mg.example.com",
+      "UseNativeTemplates": true
     }
   }
 }

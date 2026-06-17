@@ -14,7 +14,7 @@ dotnet add package MailVolt.Transport.SendGrid
 using MailVolt.Core.DependencyInjection;
 
 builder.Services.AddMailVolt()
-    .UseSendGridTransport(options =>
+    .AddSendGridSender(options =>
     {
         options.ApiKey = "SG.your-api-key";
     });
@@ -24,7 +24,7 @@ Or bind from configuration:
 
 ```csharp
 builder.Services.AddMailVolt()
-    .UseSendGridTransport(
+    .AddSendGridSender(
         builder.Configuration.GetSection("MailVolt:SendGrid"));
 ```
 
@@ -43,7 +43,7 @@ SendGrid supports inline images embedded directly in HTML. Use `AsInlineImage()`
 
 ```csharp
 builder.Services.AddMailVolt()
-    .UseSendGridTransport(options =>
+    .AddSendGridSender(options =>
     {
         options.ApiKey = Environment.GetEnvironmentVariable("SENDGRID_API_KEY")!;
     });
@@ -67,7 +67,7 @@ public async Task<EmailResult> SendReceiptAsync(string email)
 With dynamic templates:
 
 ```csharp
-.UseSendGridTransport(options =>
+.AddSendGridSender(options =>
 {
     options.ApiKey = "SG.your-api-key";
     options.UseDynamicTemplates = true;

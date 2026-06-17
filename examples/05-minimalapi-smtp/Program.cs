@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services
     .AddMailVolt(opts =>
     {
-        opts.DefaultFromAddress     = builder.Configuration["MailVolt:DefaultFromAddress"]!;
+        opts.DefaultFromAddress = builder.Configuration["MailVolt:DefaultFromAddress"]!;
         opts.DefaultFromDisplayName = "MailVolt API Demo";
     })
     .UseSmtpTransport(builder.Configuration);

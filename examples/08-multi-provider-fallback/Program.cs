@@ -1,5 +1,6 @@
 using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
+using MailVolt.Testing.DependencyInjection;
 using MailVolt.Transport.Resend;
 using MailVolt.Transport.Resend.DependencyInjection;
 using MailVolt.Transport.Smtp;
@@ -7,16 +8,25 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+
+var dryRun = args.Contains("--dry-run");
 
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration(cfg => cfg
         .AddJsonFile("appsettings.json", optional: true)
-        .AddEnvironmentVariables("MAILVOLT_"))
+        .AddEnvironmentVariables())
     .ConfigureServices((ctx, services) =>
     {
+        var defaultFrom = ctx.Configuration["MailVolt:DefaultFromAddress"] ?? "dryrun@example.com";
         var mv = services.AddMailVolt(opts =>
-            opts.DefaultFromAddress = ctx.Configuration["MailVolt:DefaultFromAddress"]!);
+            opts.DefaultFromAddress = defaultFrom);
+
+        if (dryRun)
+        {
+            Console.WriteLine("🔵 Dry run — using InMemorySender (no email sent)");
+            mv.UseInMemoryTransport();
+            return;
+        }
 
         // Register Resend as the primary transport
         mv.UseResend();
@@ -28,13 +38,13 @@ var host = Host.CreateDefaultBuilder(args)
 
         // Register the fallback wrapper as ISender (overrides the Resend ISender registration)
         services.AddTransient<ISender>(sp => new FallbackSender(
-            primarySender:  sp.GetRequiredService<IResendSender>(),
+            primarySender: sp.GetRequiredService<IResendSender>(),
             fallbackSender: sp.GetRequiredService<SmtpSender>(),
-            logger:         sp.GetRequiredService<ILogger<FallbackSender>>()
+            logger: sp.GetRequiredService<ILogger<FallbackSender>>()
         ));
 
         // Simulate primary failure for demo:
-        // Set MAILVOLT_RESEND__APIKEY=INVALID_KEY to force fallback
+        // Set MailVolt__Resend__ApiKey=INVALID_KEY to force fallback
     })
     .Build();
 

@@ -1,3 +1,4 @@
+using ConsoleSmtpRazor;
 using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
 using MailVolt.Core.Models;
@@ -13,7 +14,7 @@ var dryRun = args.Contains("--dry-run");
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration(cfg => cfg
         .AddJsonFile("appsettings.json", optional: true)
-        .AddEnvironmentVariables("MAILVOLT_"))
+        .AddEnvironmentVariables())
     .ConfigureServices((ctx, services) =>
     {
         var defaultFrom = ctx.Configuration["MailVolt:DefaultFromAddress"] ?? "dryrun@example.com";
@@ -49,9 +50,4 @@ var result = await emailBuilder
     .UsingTemplate("Templates/Welcome.cshtml", model)
     .SendAsync();
 
-if (result.IsSuccess)
-    Console.WriteLine($"✅ Sent! MessageId: {result.MessageId}");
-else
-    Console.WriteLine($"❌ Failed: {result.Error}");
-
-public record WelcomeModel(string Name, string Plan, DateTimeOffset SentAt);
+Console.WriteLine(result.IsSuccess ? $"✅ Sent! MessageId: {result.MessageId}" : $"❌ Failed: {result.Error}");

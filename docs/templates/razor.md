@@ -8,6 +8,16 @@ Render email content using ASP.NET Core Razor views (`.cshtml`). Integrates with
 dotnet add package MailVolt.Templates.Razor
 ```
 
+> **Console / worker projects:** native Razor views are compiled at build time. Change your `.csproj` to use the Razor SDK and enable MVC Razor support:
+>
+> ```xml
+> <Project Sdk="Microsoft.NET.Sdk.Razor">
+>   <PropertyGroup>
+>     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+>   </PropertyGroup>
+> </Project>
+> ```
+
 ## Registration
 
 ```csharp
@@ -34,6 +44,7 @@ Place template files in your project (or the configured root directory).
 **Simple template** — `Emails/Welcome.cshtml`:
 
 ```html
+@using MyApp.Models
 @model WelcomeModel
 
 <!DOCTYPE html>

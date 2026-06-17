@@ -13,7 +13,7 @@ var dryRun = args.Contains("--dry-run");
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration(cfg => cfg
         .AddJsonFile("appsettings.json", optional: true)
-        .AddEnvironmentVariables("MAILVOLT_"))
+        .AddEnvironmentVariables())
     .ConfigureServices((ctx, services) =>
     {
         var defaultFrom = ctx.Configuration["MailVolt:DefaultFromAddress"] ?? "dryrun@example.com";
@@ -22,7 +22,7 @@ var host = Host.CreateDefaultBuilder(args)
             opts.DefaultFromAddress = defaultFrom);
 
         if (dryRun) mv.UseInMemoryTransport();
-        else        mv.UseMailgunTransport(ctx.Configuration);
+        else mv.UseMailgunTransport(ctx.Configuration);
 
         mv.UseHandlebarsTemplates();
     })
@@ -30,11 +30,11 @@ var host = Host.CreateDefaultBuilder(args)
 
 var model = new
 {
-    name            = "Denis",
-    reset_url       = "https://app.example.com/reset?token=abc123xyz",
-    expiry_minutes  = 30,
-    show_warning    = true,
-    ip              = "195.65.12.3"
+    name = "Denis",
+    reset_url = "https://app.example.com/reset?token=abc123xyz",
+    expiry_minutes = 30,
+    show_warning = true,
+    ip = "195.65.12.3"
 };
 
 var emailBuilder = host.Services.GetRequiredService<IEmailBuilder>();

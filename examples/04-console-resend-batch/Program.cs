@@ -13,7 +13,7 @@ var dryRun = args.Contains("--dry-run");
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration(cfg => cfg
         .AddJsonFile("appsettings.json", optional: true)
-        .AddEnvironmentVariables("MAILVOLT_"))
+        .AddEnvironmentVariables())
     .ConfigureServices((ctx, services) =>
     {
         var defaultFrom = ctx.Configuration["MailVolt:DefaultFromAddress"] ?? "dryrun@example.com";
@@ -22,7 +22,7 @@ var host = Host.CreateDefaultBuilder(args)
             opts.DefaultFromAddress = defaultFrom);
 
         if (dryRun) mv.UseInMemoryTransport();
-        else        mv.UseResend(ctx.Configuration.GetSection("MailVolt:Resend"));
+        else mv.UseResend(ctx.Configuration.GetSection("MailVolt:Resend"));
 
         mv.UseLiquidTemplates();
     })
@@ -57,7 +57,7 @@ var batchSender = host.Services.GetRequiredService<IBatchEmailSender>();
 var result = await batchSender.SendBatchAsync(messages, new BatchSendOptions
 {
     MaxConcurrency = 5,       // 5 concurrent sends max
-    DelayMs        = 100,     // 100ms between sends (rate limit respect)
+    DelayMs = 100,     // 100ms between sends (rate limit respect)
     FailureStrategy = FailureStrategy.Continue
 });
 

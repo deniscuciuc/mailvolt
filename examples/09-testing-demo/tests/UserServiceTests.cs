@@ -1,6 +1,5 @@
 using FluentAssertions;
 using MailVolt.Core.DependencyInjection;
-using MailVolt.Core.Interfaces;
 using MailVolt.Core.Models;
 using MailVolt.Testing;
 using MailVolt.Testing.DependencyInjection;
@@ -10,8 +9,8 @@ using Xunit;
 public sealed class UserServiceTests : IDisposable
 {
     private readonly ServiceProvider _services;
-    private readonly InMemorySender  _sender;
-    private readonly UserService     _sut;
+    private readonly InMemorySender _sender;
+    private readonly UserService _sut;
 
     public UserServiceTests()
     {
@@ -25,8 +24,8 @@ public sealed class UserServiceTests : IDisposable
         sc.AddTransient<UserService>();
 
         _services = sc.BuildServiceProvider();
-        _sender   = _services.GetRequiredService<InMemorySender>();
-        _sut      = _services.GetRequiredService<UserService>();
+        _sender = _services.GetRequiredService<InMemorySender>();
+        _sut = _services.GetRequiredService<UserService>();
     }
 
     [Fact]
@@ -46,7 +45,7 @@ public sealed class UserServiceTests : IDisposable
     public async Task Register_SendsExactlyOneEmail()
     {
         await _sut.RegisterAsync("alice@example.com", "Alice");
-        await _sut.RegisterAsync("bob@example.com",   "Bob");
+        await _sut.RegisterAsync("bob@example.com", "Bob");
 
         _sender.SentEmails.Should().HaveCount(2);
     }

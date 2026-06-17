@@ -1,9 +1,5 @@
 using MailVolt.Core.Interfaces;
 using MailVolt.Core.Models;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 public sealed class DigestWorker(
     IServiceScopeFactory scopeFactory,
@@ -37,11 +33,11 @@ public sealed class DigestWorker(
         // IEmailBuilder is Transient — must be resolved from a scope
         await using var scope = scopeFactory.CreateAsyncScope();
         var emailBuilder = scope.ServiceProvider.GetRequiredService<IEmailBuilder>();
-        var batchSender  = scope.ServiceProvider.GetRequiredService<IBatchEmailSender>();
+        var batchSender = scope.ServiceProvider.GetRequiredService<IBatchEmailSender>();
 
         var subscribers = GetSubscribers();
         var model = new DigestModel(
-            Date:     DateOnly.FromDateTime(DateTime.Today),
+            Date: DateOnly.FromDateTime(DateTime.Today),
             Articles: ["New in .NET 10", "MailVolt 1.0 released", "C# 14 tips & tricks"]
         );
 
