@@ -1,9 +1,11 @@
-namespace MailVolt.Templates.Handlebars.DependencyInjection;
+// ReSharper disable once CheckNamespace
+
 
 using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
+namespace MailVolt.Templates.Handlebars.DependencyInjection;
 /// <summary>
 /// Extension methods for registering the Handlebars template renderer.
 /// </summary>

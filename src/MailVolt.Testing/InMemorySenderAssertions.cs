@@ -1,7 +1,6 @@
 using FluentAssertions;
 using FluentAssertions.Execution;
 using FluentAssertions.Primitives;
-using MailVolt.Core.Models;
 
 namespace MailVolt.Testing;
 
@@ -18,7 +17,8 @@ public static class InMemorySenderExtensions
 /// <summary>
 /// Provides fluent assertion methods for verifying emails captured by <see cref="InMemorySender"/>.
 /// </summary>
-public sealed class SentEmailAssertions(InMemorySender sender) : ReferenceTypeAssertions<InMemorySender, SentEmailAssertions>(sender, AssertionChain.GetOrCreate())
+public sealed class SentEmailAssertions(InMemorySender sender)
+    : ReferenceTypeAssertions<InMemorySender, SentEmailAssertions>(sender, AssertionChain.GetOrCreate())
 {
     /// <inheritdoc />
     protected override string Identifier => "InMemorySender";
@@ -35,7 +35,7 @@ public sealed class SentEmailAssertions(InMemorySender sender) : ReferenceTypeAs
     {
         Subject.SentEmails.Should()
             .Contain(s => s.Email.To.Any(a => a.Address.Equals(address, StringComparison.OrdinalIgnoreCase)),
-            "expected an email to {0}", address);
+                "expected an email to {0}", address);
         return this;
     }
 
@@ -44,7 +44,7 @@ public sealed class SentEmailAssertions(InMemorySender sender) : ReferenceTypeAs
     {
         Subject.SentEmails.Should()
             .Contain(s => s.Email.Subject.Contains(subject, StringComparison.OrdinalIgnoreCase),
-            "expected subject containing '{0}'", subject);
+                "expected subject containing '{0}'", subject);
         return this;
     }
 
@@ -53,8 +53,8 @@ public sealed class SentEmailAssertions(InMemorySender sender) : ReferenceTypeAs
     {
         Subject.SentEmails.Should()
             .Contain(s => s.Email.HtmlBody != null &&
-                         s.Email.HtmlBody.Contains(content, StringComparison.OrdinalIgnoreCase),
-            "expected HTML body containing '{0}'", content);
+                          s.Email.HtmlBody.Contains(content, StringComparison.OrdinalIgnoreCase),
+                "expected HTML body containing '{0}'", content);
         return this;
     }
 
@@ -70,7 +70,7 @@ public sealed class SentEmailAssertions(InMemorySender sender) : ReferenceTypeAs
     {
         Subject.SentEmails.Should()
             .Contain(s => s.Email.Attachments.Any(a => a.FileName.Equals(fileName, StringComparison.OrdinalIgnoreCase)),
-            "expected attachment '{0}'", fileName);
+                "expected attachment '{0}'", fileName);
         return this;
     }
 }

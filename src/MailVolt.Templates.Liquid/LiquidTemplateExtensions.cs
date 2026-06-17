@@ -1,9 +1,10 @@
-namespace MailVolt.Templates.Liquid.DependencyInjection;
+// ReSharper disable once CheckNamespace
 
 using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
+namespace MailVolt.Templates.Liquid.DependencyInjection;
 /// <summary>
 /// Extension methods for registering the Liquid template renderer.
 /// </summary>

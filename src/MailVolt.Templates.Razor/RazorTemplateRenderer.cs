@@ -58,7 +58,7 @@ public sealed class RazorTemplateRenderer : ITemplateRenderer
         if (!viewResult.Success)
         {
             viewResult = _viewEngine.GetView(
-                _options.RootDirectory,
+                null,
                 template,
                 isMainPage: false);
         }

@@ -13,7 +13,7 @@ public sealed class InMemorySender : ISender
     private readonly ConcurrentQueue<SentEmail> _sent = new();
 
     /// <summary>All emails that have been sent through this sender.</summary>
-    public IReadOnlyList<SentEmail> SentEmails => _sent.ToList();
+    public IReadOnlyList<SentEmail> SentEmails => [.. _sent];
 
     /// <summary>Total number of emails sent.</summary>
     public int SentCount => _sent.Count;
