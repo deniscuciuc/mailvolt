@@ -6,19 +6,12 @@ namespace MailVolt.Core;
 /// <summary>
 /// Sends a batch of emails with configurable concurrency and failure handling.
 /// </summary>
-internal sealed class BatchEmailSender : IBatchEmailSender
+/// <remarks>
+/// Initializes a new instance of the <see cref="BatchEmailSender"/> class.
+/// </remarks>
+/// <param name="sender">The underlying email sender used for each individual message.</param>
+internal sealed class BatchEmailSender(ISender sender) : IBatchEmailSender
 {
-    private readonly ISender _sender;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BatchEmailSender"/> class.
-    /// </summary>
-    /// <param name="sender">The underlying email sender used for each individual message.</param>
-    public BatchEmailSender(ISender sender)
-    {
-        _sender = sender;
-    }
-
     /// <inheritdoc />
     public async Task<BatchEmailResult> SendBatchAsync(
         IReadOnlyList<EmailMessage> emails,
@@ -47,8 +40,9 @@ internal sealed class BatchEmailSender : IBatchEmailSender
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var combinedToken = linkedCts.Token;
 
-        var tasks = emails.Select(email => SendOneAsync(
-            email, semaphore, results, resultsLock, options, linkedCts, combinedToken));
+        var tasks = new List<Task>(emails.Count);
+        tasks.AddRange(emails.Select(email =>
+            SendOneAsync(email, semaphore, results, resultsLock, options, linkedCts, combinedToken)));
 
         await Task.WhenAll(tasks);
 
@@ -85,7 +79,7 @@ internal sealed class BatchEmailSender : IBatchEmailSender
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var result = await _sender.SendAsync(email, cancellationToken);
+            var result = await sender.SendAsync(email, cancellationToken);
 
             lock (resultsLock)
             {
@@ -94,7 +88,7 @@ internal sealed class BatchEmailSender : IBatchEmailSender
 
             if (result.IsFailure && options.FailureStrategy == FailureStrategy.StopOnFirstFailure)
             {
-                linkedCts.Cancel();
+                await linkedCts.CancelAsync();
                 return;
             }
 

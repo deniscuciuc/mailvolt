@@ -10,17 +10,17 @@ namespace MailVolt.Core.Tests;
 
 public sealed class EmailBuilderTests
 {
-    private static MailVolt.Core.Options.MailVoltOptions DefaultOptions() => new()
+    private static Options.MailVoltOptions DefaultOptions() => new()
     {
         DefaultFromAddress = "default@example.com",
         DefaultFromDisplayName = "Default Sender",
     };
 
-    private static IOptions<MailVolt.Core.Options.MailVoltOptions> CreateOptions(MailVolt.Core.Options.MailVoltOptions? options = null) =>
+    private static IOptions<Options.MailVoltOptions> CreateOptions(Options.MailVoltOptions? options = null) =>
         Microsoft.Extensions.Options.Options.Create(options ?? DefaultOptions());
 
     private static EmailBuilder CreateBuilder(
-        MailVolt.Core.Options.MailVoltOptions? options = null,
+        Options.MailVoltOptions? options = null,
         ITemplateRenderer? templateRenderer = null,
         ISender? sender = null)
     {
@@ -102,7 +102,7 @@ public sealed class EmailBuilderTests
     [Fact]
     public async Task BuildAsync_throws_if_no_from_and_no_default()
     {
-        var options = new MailVolt.Core.Options.MailVoltOptions(); // no DefaultFromAddress
+        var options = new Options.MailVoltOptions(); // no DefaultFromAddress
         var builder = CreateBuilder(options);
         builder.To("to@example.com").Subject("Hi");
 

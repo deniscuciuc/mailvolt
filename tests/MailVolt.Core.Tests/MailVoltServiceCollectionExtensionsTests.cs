@@ -3,7 +3,6 @@ using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
 using MailVolt.Core.Options;
 using MailVolt.Testing;
-using Microsoft.Extensions.Configuration.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -111,7 +110,7 @@ public sealed class MailVoltServiceCollectionExtensionsTests
     {
         var services = new ServiceCollection();
 
-        var config = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
+        var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["MailVolt:DefaultFromAddress"] = "config@example.com",
@@ -133,7 +132,7 @@ public sealed class MailVoltServiceCollectionExtensionsTests
     {
         var services = new ServiceCollection();
 
-        var config = new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build();
+        var config = new ConfigurationBuilder().Build();
         services.AddMailVolt(config);
         services.AddSingleton<ISender>(new InMemorySender());
 
@@ -157,7 +156,7 @@ public sealed class MailVoltServiceCollectionExtensionsTests
     [Fact]
     public void AddMailVolt_with_configuration_throws_on_null_services()
     {
-        var config = new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build();
+        var config = new ConfigurationBuilder().Build();
         var act = () => MailVoltServiceCollectionExtensions.AddMailVolt(null!, config);
 
         act.Should().Throw<ArgumentNullException>();
@@ -167,7 +166,7 @@ public sealed class MailVoltServiceCollectionExtensionsTests
     public void AddMailVolt_with_configuration_throws_on_null_configuration()
     {
         var services = new ServiceCollection();
-        var act = () => services.AddMailVolt((Microsoft.Extensions.Configuration.IConfiguration)null!);
+        var act = () => services.AddMailVolt((IConfiguration)null!);
 
         act.Should().Throw<ArgumentNullException>();
     }

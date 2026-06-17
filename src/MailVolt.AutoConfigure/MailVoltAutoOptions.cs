@@ -7,13 +7,12 @@ public sealed class MailVoltAutoOptions
     public MailVoltTransport Transport { get; set; } = MailVoltTransport.Smtp;
     public MailVoltTemplateEngine? Templates { get; set; }
 
-    // Transport sub-sections
-    public MailVolt.Transport.Smtp.SmtpSenderOptions? Smtp { get; set; }
-    public MailVolt.Transport.SendGrid.SendGridSenderOptions? SendGrid { get; set; }
-    public MailVolt.Transport.Mailgun.MailgunSenderOptions? Mailgun { get; set; }
-    public MailVolt.Transport.Resend.ResendSenderOptions? Resend { get; set; }
-    public MailVolt.Transport.Postmark.PostmarkSenderOptions? Postmark { get; set; }
-    public MailVolt.Transport.AzureEmail.AzureEmailSenderOptions? Azure { get; set; }
-    public MailVolt.Transport.Brevo.BrevoSenderOptions? Brevo { get; set; }
-    public MailVolt.Transport.AwsSes.AwsSesSenderOptions? AwsSes { get; set; }
+    public Transport.Smtp.SmtpSenderOptions? Smtp { get; set; }
+    public Transport.SendGrid.SendGridSenderOptions? SendGrid { get; set; }
+    public Transport.Mailgun.MailgunSenderOptions? Mailgun { get; set; }
+    public Transport.Resend.ResendSenderOptions? Resend { get; set; }
+    public Transport.Postmark.PostmarkSenderOptions? Postmark { get; set; }
+    public Transport.AzureEmail.AzureEmailSenderOptions? Azure { get; set; }
+    public Transport.Brevo.BrevoSenderOptions? Brevo { get; set; }
+    public Transport.AwsSes.AwsSesSenderOptions? AwsSes { get; set; }
 }

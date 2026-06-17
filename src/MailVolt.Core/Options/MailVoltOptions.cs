@@ -9,12 +9,12 @@ public sealed class MailVoltOptions
     public const string SectionName = "MailVolt";
 
     /// <summary>
-    /// The default sender email address used when <see cref="MailVolt.Core.Models.EmailMessage.From"/> is not explicitly set.
+    /// The default sender email address used when <see cref="Models.EmailMessage.From"/> is not explicitly set.
     /// </summary>
     public string? DefaultFromAddress { get; set; }
 
     /// <summary>
-    /// The default display name used alongside <see cref="MailVoltOptions.DefaultFromAddress"/>.
+    /// The default display name used alongside <see cref="DefaultFromAddress"/>.
     /// </summary>
     public string? DefaultFromDisplayName { get; set; }
 }

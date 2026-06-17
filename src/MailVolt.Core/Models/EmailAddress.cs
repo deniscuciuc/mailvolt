@@ -12,7 +12,7 @@ public sealed record EmailAddress(string Address, string? DisplayName = null)
     /// returns <c>"DisplayName &lt;Address&gt;"</c>; otherwise returns the plain address.
     /// </summary>
     public override string ToString() =>
-        DisplayName is { Length: > 0 } name ? $"{name} <{Address}>" : Address;
+        DisplayName is { Length: > 0 } ? $"{DisplayName} <{Address}>" : Address;
 
     /// <summary>
     /// Implicitly converts a string to an <see cref="EmailAddress"/> with no display name.

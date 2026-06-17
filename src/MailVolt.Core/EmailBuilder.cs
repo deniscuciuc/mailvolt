@@ -8,11 +8,18 @@ namespace MailVolt.Core;
 /// <summary>
 /// Fluent builder for constructing and sending email messages.
 /// </summary>
-internal sealed class EmailBuilder : IEmailBuilder
+/// <remarks>
+/// Initializes a new instance of the <see cref="EmailBuilder"/> class.
+/// </remarks>
+/// <param name="options">The MailVolt configuration options.</param>
+/// <param name="templateRenderer">Optional template renderer for rendering template-based emails.</param>
+/// <param name="sender">Optional sender for inline SendAsync operations.</param>
+internal sealed class EmailBuilder(
+    IOptions<MailVoltOptions> options,
+    ITemplateRenderer? templateRenderer = null,
+    ISender? sender = null) : IEmailBuilder
 {
-    private readonly ITemplateRenderer? _templateRenderer;
-    private readonly ISender? _sender;
-    private readonly MailVoltOptions _options;
+    private readonly MailVoltOptions _options = options.Value;
 
     private EmailAddress? _from;
     private readonly List<EmailAddress> _to = [];
@@ -28,22 +35,6 @@ internal sealed class EmailBuilder : IEmailBuilder
     private readonly List<EmailAttachment> _attachments = [];
     private string? _template;
     private object? _templateModel;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="EmailBuilder"/> class.
-    /// </summary>
-    /// <param name="options">The MailVolt configuration options.</param>
-    /// <param name="templateRenderer">Optional template renderer for rendering template-based emails.</param>
-    /// <param name="sender">Optional sender for inline SendAsync operations.</param>
-    public EmailBuilder(
-        IOptions<MailVoltOptions> options,
-        ITemplateRenderer? templateRenderer = null,
-        ISender? sender = null)
-    {
-        _options = options.Value;
-        _templateRenderer = templateRenderer;
-        _sender = sender;
-    }
 
     /// <inheritdoc />
     public IEmailBuilder From(EmailAddress address)
@@ -134,7 +125,7 @@ internal sealed class EmailBuilder : IEmailBuilder
     {
         var attachmentBuilder = new AttachmentBuilder();
         configure(attachmentBuilder);
-        _attachments.Add(((AttachmentBuilder)attachmentBuilder).Build());
+        _attachments.Add(attachmentBuilder.Build());
         return this;
     }
 
@@ -161,7 +152,6 @@ internal sealed class EmailBuilder : IEmailBuilder
             throw new InvalidOperationException("Subject is required.");
         }
 
-        // Apply default From address if not explicitly set.
         if (_from is null)
         {
             if (_options.DefaultFromAddress is { Length: > 0 } defaultFrom)
@@ -175,16 +165,16 @@ internal sealed class EmailBuilder : IEmailBuilder
             }
         }
 
-        // Render template if configured.
-        if (_template is not null && _templateModel is not null && _templateRenderer is not null)
+        if (_htmlBody is null &&
+            _textBody is null &&
+            _template is not null &&
+            _templateModel is not null &&
+            templateRenderer is not null)
         {
-            var rendered = await _templateRenderer.RenderAsync(_template, _templateModel, cancellationToken);
-
-            // If no explicit body was set, assume the template output is HTML.
-            if (_htmlBody is null && _textBody is null)
-            {
-                _htmlBody = rendered;
-            }
+            _htmlBody = await templateRenderer.RenderAsync(
+                _template,
+                _templateModel,
+                cancellationToken);
         }
 
         return new EmailMessage
@@ -207,7 +197,7 @@ internal sealed class EmailBuilder : IEmailBuilder
     /// <inheritdoc />
     public async Task<EmailResult> SendAsync(CancellationToken cancellationToken = default)
     {
-        if (_sender is null)
+        if (sender is null)
         {
             throw new InvalidOperationException(
                 "An ISender must be registered in the DI container to use SendAsync. " +
@@ -215,6 +205,6 @@ internal sealed class EmailBuilder : IEmailBuilder
         }
 
         var email = await BuildAsync(cancellationToken);
-        return await _sender.SendAsync(email, cancellationToken);
+        return await sender.SendAsync(email, cancellationToken);
     }
 }

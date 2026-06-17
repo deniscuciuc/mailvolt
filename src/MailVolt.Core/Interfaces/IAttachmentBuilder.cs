@@ -1,7 +1,7 @@
 namespace MailVolt.Core.Interfaces;
 
 /// <summary>
-/// Fluent builder for constructing an <see cref="MailVolt.Core.Models.EmailAttachment"/>.
+/// Fluent builder for constructing an <see cref="Models.EmailAttachment"/>.
 /// </summary>
 public interface IAttachmentBuilder
 {

@@ -125,12 +125,9 @@ internal sealed class AttachmentBuilder : IAttachmentBuilder
             throw new InvalidOperationException("File name must be set before building the attachment.");
         }
 
-        if (_content is null)
-        {
-            throw new InvalidOperationException("Content must be set before building the attachment.");
-        }
-
-        return new EmailAttachment
+        return _content is null
+            ? throw new InvalidOperationException("Content must be set before building the attachment.")
+            : new EmailAttachment
         {
             FileName = _fileName,
             Content = _content,

@@ -1,5 +1,4 @@
 using FluentAssertions;
-using MailVolt.Core.Models;
 using Xunit;
 
 namespace MailVolt.Core.Tests;

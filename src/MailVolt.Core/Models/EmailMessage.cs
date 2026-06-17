@@ -6,8 +6,9 @@ namespace MailVolt.Core.Models;
 public sealed record EmailMessage
 {
     private static readonly IReadOnlyDictionary<string, string> DefaultHeaders = new Dictionary<string, string>();
+
     /// <summary>
-    /// The sender address. When null, a default will be applied by <see cref="MailVolt.Core.Interfaces.IEmailBuilder"/>.
+    /// The sender address. When null, a default will be applied by <see cref="Interfaces.IEmailBuilder"/>.
     /// </summary>
     public EmailAddress? From { get; init; }
 

@@ -1,5 +1,4 @@
 using FluentAssertions;
-using MailVolt.AutoConfigure;
 using MailVolt.Core.Interfaces;
 using MailVolt.Core.Options;
 using MailVolt.Testing;
@@ -76,7 +75,7 @@ public sealed class AutoConfigureTests
         // Verify the service descriptor is present for ITemplateRenderer
         var descriptor = services.FirstOrDefault(s => s.ServiceType == rendererInterface);
         descriptor.Should().NotBeNull();
-        descriptor!.Lifetime.Should().Be(ServiceLifetime.Transient);
+        descriptor.Lifetime.Should().Be(ServiceLifetime.Transient);
     }
 
     [Fact]
