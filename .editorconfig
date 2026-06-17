@@ -11,5 +11,8 @@ insert_final_newline = true
 [*.{csproj,props,targets}]
 indent_size = 2
 
+# IDE0160: Convert to block scoped namespace
+csharp_style_namespace_declarations = block_scoped
+
 [*.md]
 trim_trailing_whitespace = false
