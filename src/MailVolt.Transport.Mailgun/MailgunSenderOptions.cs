@@ -26,8 +26,9 @@ public sealed class MailgunSenderOptions
     public string BaseUrl { get; set; } = "https://api.mailgun.net/v3";
 
     /// <summary>
-    /// When <c>true</c>, the sender will use Mailgun's native template features
-    /// (template variables passed via <c>h:X-MailVolt-Template</c> headers).
+    /// When <c>true</c>, the sender maps the reserved headers
+    /// <c>X-MailVolt-Template</c> and <c>X-MailVolt-Template-Variables</c>
+    /// to Mailgun's native <c>template</c> and <c>t:variables</c> fields.
     /// </summary>
     public bool UseNativeTemplates { get; set; }
 }

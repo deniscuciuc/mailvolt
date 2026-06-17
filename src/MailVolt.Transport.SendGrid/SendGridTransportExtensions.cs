@@ -1,8 +1,11 @@
-using MailVolt.Core.Interfaces;
 using MailVolt.Core.DependencyInjection;
+using MailVolt.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using SendGrid.Extensions.DependencyInjection;
 
+// ReSharper disable once CheckNamespace
 namespace MailVolt.Transport.SendGrid.DependencyInjection;
 
 /// <summary>
@@ -10,62 +13,75 @@ namespace MailVolt.Transport.SendGrid.DependencyInjection;
 /// </summary>
 public static class SendGridTransportExtensions
 {
-    /// <summary>
-    /// Registers the SendGrid sender using the specified configuration delegate.
-    /// </summary>
     /// <param name="builder">The <see cref="MailVoltBuilder"/> instance.</param>
-    /// <param name="configureOptions">An optional delegate to configure <see cref="SendGridSenderOptions"/>.</param>
-    /// <returns>The <see cref="MailVoltBuilder"/> for chaining.</returns>
-    public static MailVoltBuilder AddSendGridSender(
-        this MailVoltBuilder builder,
-        Action<SendGridSenderOptions>? configureOptions = null)
+    extension(MailVoltBuilder builder)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        if (configureOptions is not null)
+        /// <summary>
+        /// Registers the SendGrid sender using the specified configuration delegate.
+        /// </summary>
+        /// <param name="configureOptions">An optional delegate to configure <see cref="SendGridSenderOptions"/>.</param>
+        /// <returns>The <see cref="MailVoltBuilder"/> for chaining.</returns>
+        public MailVoltBuilder AddSendGridSender( // ReSharper disable once MethodOverloadWithOptionalParameter
+            Action<SendGridSenderOptions>? configureOptions = null)
         {
-            builder.Services.Configure(configureOptions);
+            ArgumentNullException.ThrowIfNull(builder);
+
+            if (configureOptions is not null)
+            {
+                builder.Services.Configure(configureOptions);
+            }
+            else
+            {
+                builder.Services.Configure<SendGridSenderOptions>(_ => { });
+            }
+
+            RegisterSendGridSender(builder.Services);
+            return builder;
         }
-        else
+
+        /// <summary>
+        /// Registers the SendGrid sender, binding <see cref="SendGridSenderOptions"/> from the
+        /// <c>"MailVolt:SendGrid"</c> configuration section.
+        /// </summary>
+        /// <param name="configuration">The configuration root.</param>
+        /// <returns>The <see cref="MailVoltBuilder"/> for chaining.</returns>
+        public MailVoltBuilder AddSendGridSender(IConfiguration configuration)
         {
-            builder.Services.Configure<SendGridSenderOptions>(_ => { });
+            ArgumentNullException.ThrowIfNull(builder);
+            ArgumentNullException.ThrowIfNull(configuration);
+
+            builder.Services.Configure<SendGridSenderOptions>(
+                configuration.GetSection(SendGridSenderOptions.SectionName));
+
+            RegisterSendGridSender(builder.Services);
+            return builder;
         }
 
-        RegisterSendGridSender(builder.Services);
-        return builder;
-    }
+        /// <summary>
+        /// Registers the SendGrid sender without additional configuration.
+        /// Useful when <see cref="SendGridSenderOptions"/> are configured elsewhere.
+        /// </summary>
+        /// <returns>The <see cref="MailVoltBuilder"/> for chaining.</returns>
+        public MailVoltBuilder AddSendGridSender()
+        {
+            ArgumentNullException.ThrowIfNull(builder);
 
-    /// <summary>
-    /// Registers the SendGrid sender, binding <see cref="SendGridSenderOptions"/> from the
-    /// <c>"MailVolt:SendGrid"</c> configuration section.
-    /// </summary>
-    /// <param name="builder">The <see cref="MailVoltBuilder"/> instance.</param>
-    /// <param name="configuration">The configuration root.</param>
-    /// <returns>The <see cref="MailVoltBuilder"/> for chaining.</returns>
-    public static MailVoltBuilder AddSendGridSender(
-        this MailVoltBuilder builder,
-        IConfiguration configuration)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(configuration);
-
-        builder.Services.Configure<SendGridSenderOptions>(
-            configuration.GetSection(SendGridSenderOptions.SectionName));
-
-        RegisterSendGridSender(builder.Services);
-        return builder;
+            RegisterSendGridSender(builder.Services);
+            return builder;
+        }
     }
 
     private static void RegisterSendGridSender(IServiceCollection services)
     {
-        services.AddHttpClient<ISendGridSender, SendGridSender>((sp, client) =>
+        services.AddSendGrid((serviceProvider, options) =>
         {
-            var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<SendGridSenderOptions>>();
-            client.BaseAddress ??= new Uri(options.Value.BaseUrl);
-            client.DefaultRequestHeaders.Authorization =
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", options.Value.ApiKey);
+            var senderOptions = serviceProvider.GetRequiredService<IOptions<SendGridSenderOptions>>().Value;
+            options.ApiKey = senderOptions.ApiKey;
+            options.Host = senderOptions.BaseUrl.TrimEnd('/');
         });
 
-        services.AddTransient<ISender>(sp => sp.GetRequiredService<ISendGridSender>());
+        // Register the sender as both ISendGridSender and ISender
+        services.AddTransient<ISendGridSender, SendGridSender>();
+        services.AddTransient<ISender>(serviceProvider => serviceProvider.GetRequiredService<ISendGridSender>());
     }
 }

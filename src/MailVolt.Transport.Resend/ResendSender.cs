@@ -1,42 +1,31 @@
-using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using MailVolt.Core.Interfaces;
 using MailVolt.Core.Models;
 using Microsoft.Extensions.Logging;
+using EmailAddress = Resend.EmailAddress;
+using ResendEmailAttachment = Resend.EmailAttachment;
+using ResendEmailMessage = Resend.EmailMessage;
+using ResendEmailTag = Resend.EmailTag;
 
 namespace MailVolt.Transport.Resend;
 
 /// <summary>
-/// Sends emails via the Resend REST API (<c>POST /emails</c>).
+/// Sends emails via the Resend API using the official Resend .NET SDK.
 /// </summary>
 internal sealed class ResendSender : IResendSender
 {
-    private const string EmailsEndpoint = "emails";
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        WriteIndented = false,
-    };
-
-    private readonly HttpClient _httpClient;
+    private readonly global::Resend.IResend _resend;
     private readonly ILogger<ResendSender> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ResendSender"/> class.
     /// </summary>
-    /// <param name="httpClient">The typed <see cref="HttpClient"/> configured with the base URL and auth header.</param>
+    /// <param name="resend">The Resend client.</param>
     /// <param name="logger">The logger.</param>
-    public ResendSender(
-        HttpClient httpClient,
-        ILogger<ResendSender> logger)
+    public ResendSender(global::Resend.IResend resend, ILogger<ResendSender> logger)
     {
-        ArgumentNullException.ThrowIfNull(httpClient);
+        ArgumentNullException.ThrowIfNull(resend);
         ArgumentNullException.ThrowIfNull(logger);
 
-        _httpClient = httpClient;
+        _resend = resend;
         _logger = logger;
     }
 
@@ -45,207 +34,118 @@ internal sealed class ResendSender : IResendSender
     {
         ArgumentNullException.ThrowIfNull(email);
 
-        var payload = MapToPayload(email);
+        var message = MapToEmailMessage(email);
 
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, EmailsEndpoint)
+            var response = await _resend.EmailSendAsync(message, cancellationToken).ConfigureAwait(false);
+
+            if (response.Success)
             {
-                Content = JsonContent.Create(payload, options: JsonOptions),
-            };
+                var messageId = response.Content == Guid.Empty
+                    ? null
+                    : response.Content.ToString();
 
-            using var response = await _httpClient.SendAsync(request, cancellationToken);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
-                var errorMessage = $"Resend API returned {(int)response.StatusCode}: {errorBody}";
-
-                _logger.LogError("Failed to send email via Resend. Status: {StatusCode}, Response: {ResponseBody}",
-                    (int)response.StatusCode, errorBody);
-
-                return EmailResult.Failure(errorMessage);
-            }
-
-            var responseBody = await response.Content.ReadFromJsonAsync<ResendSendResponse>(JsonOptions, cancellationToken);
-
-            if (responseBody?.Id is { Length: > 0 } messageId)
-            {
                 _logger.LogInformation("Email sent successfully via Resend. MessageId: {MessageId}", messageId);
                 return EmailResult.Success(messageId);
             }
 
-            _logger.LogWarning("Resend API returned success but no message id was present.");
-            return EmailResult.Success();
+            var errorMessage = response.Exception?.Message ?? "Resend API returned an unsuccessful response.";
+            _logger.LogError("Failed to send email via Resend. Error: {Error}", errorMessage);
+            return EmailResult.Failure(errorMessage, response.Exception);
         }
         catch (OperationCanceledException)
         {
             _logger.LogWarning("Email sending via Resend was cancelled.");
             throw;
         }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogError(ex, "HTTP request to Resend API failed.");
-            return EmailResult.Failure("HTTP request to Resend API failed.", ex);
-        }
-        catch (JsonException ex)
-        {
-            _logger.LogError(ex, "Failed to deserialize Resend API response.");
-            return EmailResult.Failure("Failed to deserialize Resend API response.", ex);
-        }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "An unexpected error occurred while sending email via Resend.");
-            return EmailResult.Failure("An unexpected error occurred.", ex);
+            return EmailResult.Failure($"An unexpected error occurred: {ex.Message}", ex);
         }
     }
 
-    private static ResendEmailPayload MapToPayload(EmailMessage email)
+    /// <summary>
+    /// Maps a MailVolt <see cref="EmailMessage"/> to a Resend <see cref="ResendEmailMessage"/>.
+    /// </summary>
+    internal static ResendEmailMessage MapToEmailMessage(EmailMessage email)
     {
-        var payload = new ResendEmailPayload
+        var message = new ResendEmailMessage
         {
             From = email.From?.ToString() ?? string.Empty,
-            To = email.To.Select(addr => addr.ToString()).ToList(),
             Subject = email.Subject,
         };
 
+        var to = new global::Resend.EmailAddressList();
+        to.AddRange(email.To.Select(address => address.ToString()).Select(dummy => (EmailAddress)dummy));
+
+        message.To = to;
+
         if (email.Cc.Count > 0)
         {
-            payload.Cc = email.Cc.Select(addr => addr.ToString()).ToList();
+            var cc = new global::Resend.EmailAddressList();
+            cc.AddRange(email.Cc.Select(address => address.ToString()).Select(dummy => (EmailAddress)dummy));
+
+            message.Cc = cc;
         }
 
         if (email.Bcc.Count > 0)
         {
-            payload.Bcc = email.Bcc.Select(addr => addr.ToString()).ToList();
+            var bcc = new global::Resend.EmailAddressList();
+            bcc.AddRange(email.Bcc.Select(address => address.ToString()).Select(dummy => (EmailAddress)dummy));
+
+            message.Bcc = bcc;
         }
 
         if (email.ReplyTo is not null)
         {
-            payload.ReplyTo = [email.ReplyTo.ToString()];
+            var replyTo = new global::Resend.EmailAddressList
+            {
+                email.ReplyTo.ToString()
+            };
+            message.ReplyTo = replyTo;
         }
 
         if (email.HtmlBody is { Length: > 0 })
         {
-            payload.Html = email.HtmlBody;
+            message.HtmlBody = email.HtmlBody;
         }
 
         if (email.TextBody is { Length: > 0 })
         {
-            payload.Text = email.TextBody;
-        }
-
-        if (email.Attachments.Count > 0)
-        {
-            payload.Attachments = email.Attachments
-                .Select(MapAttachment)
-                .ToList();
+            message.TextBody = email.TextBody;
         }
 
         if (email.Headers.Count > 0)
         {
-            payload.Headers = new Dictionary<string, string>(email.Headers);
+            message.Headers = new Dictionary<string, string>(email.Headers);
         }
 
         if (email.Tags.Count > 0)
         {
-            payload.Tags = email.Tags
-                .Select(tag => new ResendTag { Name = tag, Value = tag })
-                .ToList();
+            message.Tags = [.. email.Tags.Select(tag => new ResendEmailTag { Name = tag, Value = tag })];
         }
 
-        return payload;
-    }
-
-    private static ResendAttachment MapAttachment(EmailAttachment attachment)
-    {
-        var contentBytes = ReadStreamFully(attachment.Content);
-        var base64Content = Convert.ToBase64String(contentBytes);
-
-        return new ResendAttachment
+        if (email.Attachments.Count <= 0) return message;
+        
+        var attachments = new List<ResendEmailAttachment>();
+        foreach (var attachment in email.Attachments)
         {
-            Filename = attachment.FileName,
-            Content = base64Content,
-            ContentType = attachment.ContentType,
-        };
-    }
+            using var memoryStream = new MemoryStream();
+            attachment.Content.CopyTo(memoryStream);
 
-    private static byte[] ReadStreamFully(Stream stream)
-    {
-        if (stream.CanSeek)
-        {
-            using var ms = new MemoryStream((int)stream.Length);
-            stream.CopyTo(ms);
-            return ms.ToArray();
+            attachments.Add(new ResendEmailAttachment
+            {
+                Filename = attachment.FileName,
+                Content = Convert.ToBase64String(memoryStream.ToArray()),
+                ContentType = attachment.ContentType,
+                ContentId = attachment.ContentId,
+            });
         }
 
-        using var memoryStream = new MemoryStream();
-        stream.CopyTo(memoryStream);
-        return memoryStream.ToArray();
-    }
+        message.Attachments = attachments;
 
-    // ──────────────────────────────────────────────────────────
-    //  Internal DTOs – mapped to the Resend API JSON contract
-    // ──────────────────────────────────────────────────────────
-
-    private sealed record ResendSendResponse
-    {
-        public string? Id { get; init; }
-    }
-
-    private sealed class ResendEmailPayload
-    {
-        [JsonPropertyName("from")]
-        public string From { get; set; } = string.Empty;
-
-        [JsonPropertyName("to")]
-        public List<string> To { get; set; } = [];
-
-        [JsonPropertyName("cc")]
-        public List<string>? Cc { get; set; }
-
-        [JsonPropertyName("bcc")]
-        public List<string>? Bcc { get; set; }
-
-        [JsonPropertyName("reply_to")]
-        public List<string>? ReplyTo { get; set; }
-
-        [JsonPropertyName("subject")]
-        public string Subject { get; set; } = string.Empty;
-
-        [JsonPropertyName("html")]
-        public string? Html { get; set; }
-
-        [JsonPropertyName("text")]
-        public string? Text { get; set; }
-
-        [JsonPropertyName("headers")]
-        public Dictionary<string, string>? Headers { get; set; }
-
-        [JsonPropertyName("tags")]
-        public List<ResendTag>? Tags { get; set; }
-
-        [JsonPropertyName("attachments")]
-        public List<ResendAttachment>? Attachments { get; set; }
-    }
-
-    private sealed class ResendAttachment
-    {
-        [JsonPropertyName("filename")]
-        public string Filename { get; set; } = string.Empty;
-
-        [JsonPropertyName("content")]
-        public string Content { get; set; } = string.Empty;
-
-        [JsonPropertyName("content_type")]
-        public string ContentType { get; set; } = string.Empty;
-    }
-
-    private sealed class ResendTag
-    {
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
-
-        [JsonPropertyName("value")]
-        public string Value { get; set; } = string.Empty;
+        return message;
     }
 }

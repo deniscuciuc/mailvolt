@@ -20,14 +20,9 @@ internal static class Helpers
     /// <summary>
     /// A stub <see cref="HttpMessageHandler"/> that captures requests and returns fixed responses.
     /// </summary>
-    internal sealed class HttpMessageHandlerStub : HttpMessageHandler
+    internal sealed class HttpMessageHandlerStub(Func<HttpRequestMessage, Task<HttpResponseMessage>> sendAsync) : HttpMessageHandler
     {
-        private readonly Func<HttpRequestMessage, Task<HttpResponseMessage>> _sendAsync;
-
-        public HttpMessageHandlerStub(Func<HttpRequestMessage, Task<HttpResponseMessage>> sendAsync)
-        {
-            _sendAsync = sendAsync;
-        }
+        private readonly Func<HttpRequestMessage, Task<HttpResponseMessage>> _sendAsync = sendAsync;
 
         /// <summary>Creates a handler that always returns the specified response.</summary>
         public static HttpMessageHandlerStub Returning(HttpResponseMessage response)

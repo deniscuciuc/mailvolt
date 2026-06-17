@@ -1,75 +1,71 @@
-using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using MailVolt.Core.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using SendGrid;
+using SendGrid.Helpers.Mail;
+using SendGridEmailAddress = SendGrid.Helpers.Mail.EmailAddress;
 
 namespace MailVolt.Transport.SendGrid;
 
 /// <summary>
-/// Sends email messages via the SendGrid v3 <c>/v3/mail/send</c> API.
+/// Sends email messages via the official Twilio SendGrid C# SDK.
 /// </summary>
 internal sealed partial class SendGridSender : ISendGridSender
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
-
-    private readonly HttpClient _httpClient;
+    private readonly ISendGridClient _client;
     private readonly SendGridSenderOptions _options;
     private readonly ILogger<SendGridSender> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SendGridSender"/> class.
     /// </summary>
-    /// <param name="httpClient">The typed <see cref="HttpClient"/> configured for SendGrid.</param>
+    /// <param name="client">The SendGrid client used to send email.</param>
     /// <param name="options">The SendGrid sender options.</param>
     /// <param name="logger">The logger instance.</param>
     public SendGridSender(
-        HttpClient httpClient,
+        ISendGridClient client,
         IOptions<SendGridSenderOptions> options,
         ILogger<SendGridSender> logger)
     {
-        _httpClient = httpClient;
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(logger);
+
+        _client = client;
         _options = options.Value;
         _logger = logger;
-
-        // Ensure base address is set from options if not already configured.
-        _httpClient.BaseAddress ??= new Uri(_options.BaseUrl);
     }
 
     /// <inheritdoc />
     public async Task<EmailResult> SendAsync(EmailMessage email, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(email);
+
         try
         {
-            var payload = BuildPayload(email);
+            var message = MapToSendGridMessage(email, _options);
+            var response = await _client.SendEmailAsync(message, cancellationToken).ConfigureAwait(false);
 
-            using var response = await _httpClient.PostAsJsonAsync(
-                "/v3/mail/send",
-                payload,
-                JsonOptions,
-                cancellationToken);
-
-            if (!response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
             {
-                var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
-                LogSendGridError(response.StatusCode, errorBody);
-                return EmailResult.Failure($"SendGrid returned {(int)response.StatusCode}: {errorBody}");
+                var messageId = response.Headers.TryGetValues("X-Message-Id", out var values)
+                    ? values.FirstOrDefault()
+                    : null;
+
+                LogSendGridSuccess(messageId);
+                return EmailResult.Success(messageId);
             }
 
-            var messageId = response.Headers.TryGetValues("x-message-id", out var values)
-                ? values.FirstOrDefault()
+            var errorBody = response.Body is not null
+                ? await response.Body.ReadAsStringAsync(cancellationToken).ConfigureAwait(false)
                 : null;
 
-            LogSendGridSuccess(messageId);
-            return EmailResult.Success(messageId);
+            LogSendGridError(response.StatusCode, errorBody);
+            return EmailResult.Failure($"SendGrid returned {(int)response.StatusCode}: {errorBody}");
         }
         catch (OperationCanceledException)
         {
+            _logger.LogWarning("Email sending via SendGrid was cancelled.");
             throw;
         }
         catch (Exception ex)
@@ -80,92 +76,100 @@ internal sealed partial class SendGridSender : ISendGridSender
     }
 
     /// <summary>
-    /// Builds the SendGrid v3 JSON payload from the email message.
+    /// Maps a MailVolt <see cref="EmailMessage"/> to a SendGrid <see cref="SendGridMessage"/>.
     /// </summary>
-    private object BuildPayload(EmailMessage email)
+    internal static SendGridMessage MapToSendGridMessage(EmailMessage email, SendGridSenderOptions options)
     {
-        var from = MapAddress(email.From)
-            ?? throw new InvalidOperationException("A From address is required.");
+        ArgumentNullException.ThrowIfNull(email);
+        ArgumentNullException.ThrowIfNull(options);
 
-        var personalization = new SendGridPersonalization(
-            To: email.To.Select(MapAddress).ToList(),
-            Cc: email.Cc.Count > 0 ? email.Cc.Select(MapAddress).ToList() : null,
-            Bcc: email.Bcc.Count > 0 ? email.Bcc.Select(MapAddress).ToList() : null,
-            Subject: !_options.UseDynamicTemplates ? email.Subject : null,
-            Headers: email.Headers.Count > 0 ? new Dictionary<string, string>(email.Headers) : null);
-
-        // Build content array — omitted when using dynamic templates without explicit body content.
-        List<SendGridContent>? content = null;
-        if (!_options.UseDynamicTemplates || email.TextBody is not null || email.HtmlBody is not null)
+        var message = new SendGridMessage
         {
-            content = [];
-            if (email.TextBody is { Length: > 0 } text)
+            From = MapAddress(email.From),
+            Subject = options.UseDynamicTemplates ? null : email.Subject,
+        };
+
+        foreach (var to in email.To)
+        {
+            message.AddTo(to.Address, to.DisplayName);
+        }
+
+        foreach (var cc in email.Cc)
+        {
+            message.AddCc(cc.Address, cc.DisplayName);
+        }
+
+        foreach (var bcc in email.Bcc)
+        {
+            message.AddBcc(bcc.Address, bcc.DisplayName);
+        }
+
+        if (email.ReplyTo is not null)
+        {
+            message.SetReplyTo(MapAddress(email.ReplyTo));
+        }
+
+        if (!options.UseDynamicTemplates || !string.IsNullOrEmpty(email.TextBody) ||
+            !string.IsNullOrEmpty(email.HtmlBody))
+        {
+            if (!string.IsNullOrEmpty(email.TextBody))
             {
-                content.Add(new SendGridContent("text/plain", text));
+                message.AddContent("text/plain", email.TextBody);
             }
 
-            if (email.HtmlBody is { Length: > 0 } html)
+            if (!string.IsNullOrEmpty(email.HtmlBody))
             {
-                content.Add(new SendGridContent("text/html", html));
+                message.AddContent("text/html", email.HtmlBody);
             }
         }
 
-        // Build attachments.
-        List<SendGridAttachment>? attachments = null;
+        if (email.Headers.Count > 0)
+        {
+            foreach (var header in email.Headers)
+            {
+                message.AddGlobalHeader(header.Key, header.Value);
+            }
+        }
+
+        if (email.Tags.Count > 0)
+        {
+            message.AddCategories(email.Tags.ToList());
+        }
+
         if (email.Attachments.Count > 0)
         {
-            attachments = [];
             foreach (var attachment in email.Attachments)
             {
-                attachments.Add(MapAttachment(attachment));
+                using var memoryStream = new MemoryStream();
+                attachment.Content.CopyTo(memoryStream);
+                var base64Content = Convert.ToBase64String(memoryStream.ToArray());
+
+                message.AddAttachment(
+                    attachment.FileName,
+                    base64Content,
+                    attachment.ContentType,
+                    attachment.IsInline ? "inline" : "attachment",
+                    attachment.ContentId);
             }
         }
 
-        // Build categories from tags.
-        List<string>? categories = email.Tags.Count > 0 ? [.. email.Tags] : null;
-
-        // Build mail_settings / sandbox_mode.
-        SendGridMailSettings? mailSettings = null;
-        if (_options.SandboxMode is { Length: > 0 } sandboxStr
-            && bool.TryParse(sandboxStr, out var sandboxEnabled))
+        if (options.SandboxMode is { Length: > 0 } sandboxValue
+            && bool.TryParse(sandboxValue, out var sandboxEnabled))
         {
-            mailSettings = new SendGridMailSettings(new SendGridSandboxMode(sandboxEnabled));
+            message.SetSandBoxMode(sandboxEnabled);
         }
 
-        return new SendGridPayload(
-            Personalizations: [personalization],
-            From: from,
-            ReplyTo: email.ReplyTo is not null ? MapAddress(email.ReplyTo) : null,
-            Subject: _options.UseDynamicTemplates ? null : email.Subject,
-            Content: content,
-            Attachments: attachments,
-            Headers: email.Headers.Count > 0 ? new Dictionary<string, string>(email.Headers) : null,
-            Categories: categories,
-            MailSettings: mailSettings);
+        return message;
     }
 
-    private static SendGridEmailAddress MapAddress(EmailAddress? address)
+    private static SendGridEmailAddress MapAddress(Core.Models.EmailAddress? address)
     {
         ArgumentNullException.ThrowIfNull(address);
         return new SendGridEmailAddress(address.Address, address.DisplayName);
     }
 
-    private static SendGridAttachment MapAttachment(EmailAttachment attachment)
-    {
-        using var memoryStream = new MemoryStream();
-        attachment.Content.CopyTo(memoryStream);
-        var base64Content = Convert.ToBase64String(memoryStream.ToArray());
-
-        return new SendGridAttachment(
-            Content: base64Content,
-            Filename: attachment.FileName,
-            Type: attachment.ContentType,
-            Disposition: attachment.IsInline ? "inline" : "attachment",
-            ContentId: attachment.ContentId);
-    }
-
-    [LoggerMessage(EventId = 1, Level = LogLevel.Error, Message = "SendGrid API returned {StatusCode}")]
-    private partial void LogSendGridError(System.Net.HttpStatusCode statusCode, string errorBody);
+    [LoggerMessage(EventId = 1, Level = LogLevel.Error, Message = "SendGrid API returned {StatusCode}: {ErrorBody}")]
+    private partial void LogSendGridError(System.Net.HttpStatusCode statusCode, string? errorBody);
 
     [LoggerMessage(EventId = 2, Level = LogLevel.Debug, Message = "SendGrid email accepted. MessageId: {MessageId}")]
     private partial void LogSendGridSuccess(string? messageId);
@@ -173,69 +177,3 @@ internal sealed partial class SendGridSender : ISendGridSender
     [LoggerMessage(EventId = 3, Level = LogLevel.Error, Message = "SendGrid sender threw an exception")]
     private partial void LogSendGridException(Exception exception);
 }
-
-// ──────────────────────────────────────────────
-// SendGrid v3 JSON payload DTOs
-// ──────────────────────────────────────────────
-
-#pragma warning disable CA1812 // instantiated via System.Text.Json
-
-/// <summary>
-/// The root SendGrid v3 mail/send payload.
-/// </summary>
-internal sealed record SendGridPayload(
-    [property: JsonPropertyName("personalizations")] List<SendGridPersonalization> Personalizations,
-    [property: JsonPropertyName("from")] SendGridEmailAddress From,
-    [property: JsonPropertyName("reply_to")] SendGridEmailAddress? ReplyTo,
-    [property: JsonPropertyName("subject")] string? Subject,
-    [property: JsonPropertyName("content")] List<SendGridContent>? Content,
-    [property: JsonPropertyName("attachments")] List<SendGridAttachment>? Attachments,
-    [property: JsonPropertyName("headers")] Dictionary<string, string>? Headers,
-    [property: JsonPropertyName("categories")] List<string>? Categories,
-    [property: JsonPropertyName("mail_settings")] SendGridMailSettings? MailSettings);
-
-/// <summary>
-/// A single personalization block containing recipients and per-email overrides.
-/// </summary>
-internal sealed record SendGridPersonalization(
-    [property: JsonPropertyName("to")] List<SendGridEmailAddress> To,
-    [property: JsonPropertyName("cc")] List<SendGridEmailAddress>? Cc,
-    [property: JsonPropertyName("bcc")] List<SendGridEmailAddress>? Bcc,
-    [property: JsonPropertyName("subject")] string? Subject,
-    [property: JsonPropertyName("headers")] Dictionary<string, string>? Headers);
-
-/// <summary>
-/// An email address with an optional display name.
-/// </summary>
-internal sealed record SendGridEmailAddress(
-    [property: JsonPropertyName("email")] string Email,
-    [property: JsonPropertyName("name")] string? Name);
-
-/// <summary>
-/// A content MIME part.
-/// </summary>
-internal sealed record SendGridContent(
-    [property: JsonPropertyName("type")] string Type,
-    [property: JsonPropertyName("value")] string Value);
-
-/// <summary>
-/// A file attachment.
-/// </summary>
-internal sealed record SendGridAttachment(
-    [property: JsonPropertyName("content")] string Content,
-    [property: JsonPropertyName("filename")] string Filename,
-    [property: JsonPropertyName("type")] string Type,
-    [property: JsonPropertyName("disposition")] string? Disposition,
-    [property: JsonPropertyName("content_id")] string? ContentId);
-
-/// <summary>
-/// Mail settings wrapper.
-/// </summary>
-internal sealed record SendGridMailSettings(
-    [property: JsonPropertyName("sandbox_mode")] SendGridSandboxMode SandboxMode);
-
-/// <summary>
-/// Sandbox mode setting.
-/// </summary>
-internal sealed record SendGridSandboxMode(
-    [property: JsonPropertyName("enable")] bool Enable);

@@ -9,8 +9,6 @@ using MailVolt.Transport.Brevo.DependencyInjection;
 using MailVolt.Transport.AwsSes.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Xunit;
 
 namespace MailVolt.Transport.Tests;
 

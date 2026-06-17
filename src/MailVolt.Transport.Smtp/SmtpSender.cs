@@ -1,5 +1,3 @@
-namespace MailVolt.Transport.Smtp;
-
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MailVolt.Core.Interfaces;
@@ -7,20 +5,20 @@ using MailVolt.Core.Models;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
-public sealed class SmtpSender : ISender
-{
-    private readonly SmtpSenderOptions _options;
+namespace MailVolt.Transport.Smtp;
 
-    public SmtpSender(IOptions<SmtpSenderOptions> options)
-    {
-        _options = options.Value;
-    }
+public sealed class SmtpSender(IOptions<SmtpSenderOptions> options) : ISender
+{
+    private readonly SmtpSenderOptions _options = options.Value;
 
     public async Task<EmailResult> SendAsync(EmailMessage email, CancellationToken cancellationToken = default)
     {
         try
         {
-            using var client = new SmtpClient();
+            using var client = new SmtpClient
+            {
+                Timeout = _options.TimeoutMs
+            };
             var message = BuildMimeMessage(email);
 
             await client.ConnectAsync(_options.Host, _options.Port, _options.Security, cancellationToken);
@@ -28,7 +26,8 @@ public sealed class SmtpSender : ISender
             if (_options.OAuth2TokenProvider is not null)
             {
                 var token = await _options.OAuth2TokenProvider(cancellationToken);
-                await client.AuthenticateAsync(new SaslMechanismOAuth2(_options.Username ?? string.Empty, token), cancellationToken);
+                await client.AuthenticateAsync(new SaslMechanismOAuth2(_options.Username ?? string.Empty, token),
+                    cancellationToken);
             }
             else if (_options.Username is not null && _options.Password is not null)
             {
@@ -79,18 +78,19 @@ public sealed class SmtpSender : ISender
         {
             if (attachment.IsInline)
             {
-                var linked = body.LinkedResources.Add(attachment.FileName, attachment.Content, ContentType.Parse(attachment.ContentType));
+                var linked = body.LinkedResources.Add(attachment.FileName, attachment.Content,
+                    ContentType.Parse(attachment.ContentType));
                 linked.ContentId = attachment.ContentId;
             }
             else
             {
-                body.Attachments.Add(attachment.FileName, attachment.Content, ContentType.Parse(attachment.ContentType));
+                body.Attachments.Add(attachment.FileName, attachment.Content,
+                    ContentType.Parse(attachment.ContentType));
             }
         }
 
         message.Body = body.ToMessageBody();
 
-        // Set priority
         message.Headers["X-Priority"] = email.Priority switch
         {
             EmailPriority.Low => "5",
@@ -99,7 +99,6 @@ public sealed class SmtpSender : ISender
             _ => "3"
         };
 
-        // Add custom headers
         foreach (var header in email.Headers)
             message.Headers[header.Key] = header.Value;
 

@@ -1,7 +1,7 @@
-namespace MailVolt.Transport.Smtp;
 
 using MailKit.Security;
 
+namespace MailVolt.Transport.Smtp;
 public sealed class SmtpSenderOptions
 {
     public const string SectionName = "MailVolt:Smtp";

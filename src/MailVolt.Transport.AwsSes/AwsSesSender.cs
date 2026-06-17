@@ -12,18 +12,13 @@ namespace MailVolt.Transport.AwsSes;
 /// <summary>
 /// Sends email messages via the AWS SES v2 API.
 /// </summary>
-public sealed class AwsSesSender : ISender
+/// <remarks>
+/// Initializes a new instance of the <see cref="AwsSesSender"/> class.
+/// </remarks>
+/// <param name="options">The AWS SES options.</param>
+public sealed class AwsSesSender(IOptions<AwsSesSenderOptions> options) : ISender
 {
-    private readonly AwsSesSenderOptions _options;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AwsSesSender"/> class.
-    /// </summary>
-    /// <param name="options">The AWS SES options.</param>
-    public AwsSesSender(IOptions<AwsSesSenderOptions> options)
-    {
-        _options = options.Value;
-    }
+    private readonly AwsSesSenderOptions _options = options.Value;
 
     /// <inheritdoc />
     public async Task<EmailResult> SendAsync(EmailMessage email, CancellationToken cancellationToken = default)
@@ -55,9 +50,9 @@ public sealed class AwsSesSender : ISender
             FromEmailAddress = email.From?.ToString(),
             Destination = new Destination
             {
-                ToAddresses = email.To.Select(static t => t.ToString()).ToList(),
-                CcAddresses = email.Cc.Select(static c => c.ToString()).ToList(),
-                BccAddresses = email.Bcc.Select(static b => b.ToString()).ToList()
+                ToAddresses = [.. email.To.Select(static t => t.ToString())],
+                CcAddresses = [.. email.Cc.Select(static c => c.ToString())],
+                BccAddresses = [.. email.Bcc.Select(static b => b.ToString())]
             },
             Content = new EmailContent
             {
@@ -85,11 +80,9 @@ public sealed class AwsSesSender : ISender
     {
         var mimeMessage = new MimeMessage();
 
-        // From
         if (email.From is not null)
             mimeMessage.From.Add(new MailboxAddress(email.From.DisplayName, email.From.Address));
 
-        // To, Cc, Bcc
         foreach (var to in email.To)
             mimeMessage.To.Add(new MailboxAddress(to.DisplayName, to.Address));
         foreach (var cc in email.Cc)
@@ -97,14 +90,11 @@ public sealed class AwsSesSender : ISender
         foreach (var bcc in email.Bcc)
             mimeMessage.Bcc.Add(new MailboxAddress(bcc.DisplayName, bcc.Address));
 
-        // Subject
         mimeMessage.Subject = email.Subject;
 
-        // Headers
         foreach (var header in email.Headers)
             mimeMessage.Headers.Add(header.Key, header.Value);
 
-        // Body builder handles plain text, HTML, and attachments
         var bodyBuilder = new BodyBuilder();
 
         if (email.TextBody is not null)
@@ -113,18 +103,14 @@ public sealed class AwsSesSender : ISender
         if (email.HtmlBody is not null)
             bodyBuilder.HtmlBody = email.HtmlBody;
 
-        // Add each attachment
         foreach (var attachment in email.Attachments)
         {
-            bodyBuilder.Attachments.Add(
-                attachment.FileName,
-                attachment.Content,
-                ContentType.Parse(attachment.ContentType));
+            await bodyBuilder.Attachments.AddAsync(attachment.FileName, attachment.Content,
+                ContentType.Parse(attachment.ContentType), ct);
         }
 
         mimeMessage.Body = bodyBuilder.ToMessageBody();
 
-        // Serialize the MIME message into a raw memory stream
         await using var memoryStream = new MemoryStream();
         await mimeMessage.WriteToAsync(memoryStream, ct);
         memoryStream.Position = 0;
@@ -134,9 +120,9 @@ public sealed class AwsSesSender : ISender
             FromEmailAddress = email.From?.ToString(),
             Destination = new Destination
             {
-                ToAddresses = email.To.Select(static t => t.ToString()).ToList(),
-                CcAddresses = email.Cc.Select(static c => c.ToString()).ToList(),
-                BccAddresses = email.Bcc.Select(static b => b.ToString()).ToList()
+                ToAddresses = [.. email.To.Select(static t => t.ToString())],
+                CcAddresses = [.. email.Cc.Select(static c => c.ToString())],
+                BccAddresses = [.. email.Bcc.Select(static b => b.ToString())]
             },
             Content = new EmailContent
             {

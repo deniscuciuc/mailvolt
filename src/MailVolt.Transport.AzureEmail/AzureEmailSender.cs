@@ -29,7 +29,8 @@ public sealed class AzureEmailSender : ISender
         try
         {
             var senderAddress = email.From?.Address
-                ?? throw new InvalidOperationException("The From address is required when sending via Azure Email.");
+                                ?? throw new InvalidOperationException(
+                                    "The From address is required when sending via Azure Email.");
 
             var recipients = new Azure.Communication.Email.EmailRecipients(
                 MapAddresses(email.To),
@@ -54,7 +55,7 @@ public sealed class AzureEmailSender : ISender
             {
                 await using var ms = new MemoryStream();
                 await attachment.Content.CopyToAsync(ms, cancellationToken);
-                var binaryData = System.BinaryData.FromBytes(ms.ToArray());
+                var binaryData = BinaryData.FromBytes(ms.ToArray());
 
                 var azureAttachment = new Azure.Communication.Email.EmailAttachment(
                     attachment.FileName,
@@ -92,12 +93,8 @@ public sealed class AzureEmailSender : ISender
     private static List<Azure.Communication.Email.EmailAddress> MapAddresses(IReadOnlyList<EmailAddress> addresses)
     {
         var result = new List<Azure.Communication.Email.EmailAddress>(addresses.Count);
-
-        foreach (var addr in addresses)
-        {
-            result.Add(new Azure.Communication.Email.EmailAddress(addr.Address, addr.DisplayName));
-        }
-
+        result.AddRange(addresses.Select(addr =>
+            new Azure.Communication.Email.EmailAddress(addr.Address, addr.DisplayName)));
         return result;
     }
 }

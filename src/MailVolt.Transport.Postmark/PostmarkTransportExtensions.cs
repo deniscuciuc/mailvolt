@@ -2,7 +2,6 @@ using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
 using MailVolt.Transport.Postmark;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 // ReSharper disable once CheckNamespace
@@ -21,6 +20,7 @@ public static class PostmarkTransportExtensions
     /// <returns>The builder instance for chaining.</returns>
     public static MailVoltBuilder AddPostmarkSender(
         this MailVoltBuilder builder,
+        // ReSharper disable once MethodOverloadWithOptionalParameter
         Action<PostmarkSenderOptions>? configureOptions = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -80,15 +80,10 @@ public static class PostmarkTransportExtensions
     /// </summary>
     private static void RegisterPostmarkServices(IServiceCollection services)
     {
-        // Named HttpClient for Postmark
-        services.AddHttpClient(PostmarkHttpClient.Name, (sp, client) =>
+        services.AddTransient<IPostmarkClient>(sp =>
         {
             var options = sp.GetRequiredService<IOptions<PostmarkSenderOptions>>().Value;
-            client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/'));
-            client.DefaultRequestHeaders.TryAddWithoutValidation(
-                "X-Postmark-Server-Token", options.ApiKey);
-            client.DefaultRequestHeaders.Accept.Add(
-                new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+            return new PostmarkClientWrapper(options.ApiKey, options.BaseUrl.TrimEnd('/'));
         });
 
         // Register the sender as both IPostmarkSender and ISender

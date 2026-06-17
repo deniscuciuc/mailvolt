@@ -1,20 +1,19 @@
-using System.Net;
-using System.Text;
-using System.Text.Json;
-using FluentAssertions;
+using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
 using MailVolt.Core.Models;
 using MailVolt.Transport.Brevo;
-using Microsoft.Extensions.Options;
-using Xunit;
+using MailVolt.Transport.Brevo.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using brevo_csharp.Api;
+using brevo_csharp.Model;
+using Task = System.Threading.Tasks.Task;
 
 namespace MailVolt.Transport.Tests;
 
 public sealed class BrevoSenderTests
 {
-    private static readonly Uri BrevoBaseAddress = new("https://api.brevo.com");
-
-    private readonly BrevoSenderOptions _options = new()
+    private static readonly BrevoSenderOptions Options = new()
     {
         ApiKey = "my-brevo-api-key"
     };
@@ -32,210 +31,212 @@ public sealed class BrevoSenderTests
     }
 
     [Fact]
-    public async Task SendAsync_sends_to_v3_smtp_email_endpoint()
+    public void Constructor_throws_on_null_options()
     {
-        var capturedRequest = new HttpRequestMessage();
-        var handler = Helpers.HttpMessageHandlerStub.Capture(req => capturedRequest = req);
-        var httpClient = new HttpClient(handler) { BaseAddress = BrevoBaseAddress };
-        var sender = new BrevoSender(httpClient, Helpers.OptionsOf(_options));
+        var act = () => new BrevoSender((IOptions<BrevoSenderOptions>)null!);
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void AddBrevoSender_with_delegate_registers_ISender()
+    {
+        var services = new ServiceCollection();
+        var builder = new MailVoltBuilder(services);
+
+        builder.AddBrevoSender(opts =>
+        {
+            opts.ApiKey = "brevo-key";
+        });
+
+        var provider = services.BuildServiceProvider();
+        var sender = provider.GetService<ISender>();
+        sender.Should().NotBeNull();
+        sender.Should().BeOfType<BrevoSender>();
+
+        var resolvedOptions = provider.GetRequiredService<IOptions<BrevoSenderOptions>>().Value;
+        resolvedOptions.ApiKey.Should().Be("brevo-key");
+    }
+
+    [Fact]
+    public void AddBrevoSender_with_configuration_registers_ISender()
+    {
+        var services = new ServiceCollection();
+        var builder = new MailVoltBuilder(services);
+
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["MailVolt:Brevo:ApiKey"] = "brevo-key"
+            })
+            .Build();
+
+        builder.AddBrevoSender(config);
+
+        var provider = services.BuildServiceProvider();
+        var sender = provider.GetService<ISender>();
+        sender.Should().NotBeNull();
+        sender.Should().BeOfType<BrevoSender>();
+
+        var resolvedOptions = provider.GetRequiredService<IOptions<BrevoSenderOptions>>().Value;
+        resolvedOptions.ApiKey.Should().Be("brevo-key");
+    }
+
+    [Fact]
+    public void BuildSendSmtpEmail_maps_sender()
+    {
         var email = Helpers.CreateTestEmail();
 
-        var result = await sender.SendAsync(email);
+        var request = BrevoSender.BuildSendSmtpEmail(email);
 
-        capturedRequest.RequestUri!.AbsolutePath.Should().Be("/v3/smtp/email");
-        capturedRequest.Method.Should().Be(HttpMethod.Post);
+        request.Sender.Should().NotBeNull();
+        request.Sender!.Email.Should().Be("sender@example.com");
+        request.Sender.Name.Should().Be("Sender");
     }
 
     [Fact]
-    public async Task SendAsync_sets_api_key_header()
+    public void BuildSendSmtpEmail_maps_recipients()
     {
-        var capturedRequest = new HttpRequestMessage();
-        var handler = Helpers.HttpMessageHandlerStub.Capture(req => capturedRequest = req);
-        var httpClient = new HttpClient(handler) { BaseAddress = BrevoBaseAddress };
-
-        var sender = new BrevoSender(httpClient, Helpers.OptionsOf(_options));
         var email = Helpers.CreateTestEmail();
 
-        await sender.SendAsync(email);
+        var request = BrevoSender.BuildSendSmtpEmail(email);
 
-        capturedRequest.Headers.Should().ContainKey("api-key");
-        capturedRequest.Headers.GetValues("api-key").Should().Contain("my-brevo-api-key");
+        request.To.Should().HaveCount(1);
+        request.To[0].Email.Should().Be("recipient@example.com");
+        request.To[0].Name.Should().Be("Recipient");
     }
 
     [Fact]
-    public async Task SendAsync_maps_sender_correctly()
+    public void BuildSendSmtpEmail_maps_subject_and_content()
     {
-        var capturedRequest = new HttpRequestMessage();
-        var handler = Helpers.HttpMessageHandlerStub.Capture(req => capturedRequest = req);
-        var httpClient = new HttpClient(handler) { BaseAddress = BrevoBaseAddress };
-
-        var sender = new BrevoSender(httpClient, Helpers.OptionsOf(_options));
         var email = Helpers.CreateTestEmail();
 
-        await sender.SendAsync(email);
+        var request = BrevoSender.BuildSendSmtpEmail(email);
 
-        var body = await capturedRequest.Content!.ReadAsStringAsync();
-        using var json = JsonDocument.Parse(body);
-
-        json.RootElement.GetProperty("sender").GetProperty("email").GetString().Should().Be("sender@example.com");
-        json.RootElement.GetProperty("sender").GetProperty("name").GetString().Should().Be("Sender");
+        request.Subject.Should().Be("Test Subject");
+        request.HtmlContent.Should().Be("<p>Hello HTML</p>");
+        request.TextContent.Should().Be("Hello plain text");
     }
 
     [Fact]
-    public async Task SendAsync_maps_recipients_correctly()
+    public void BuildSendSmtpEmail_maps_reply_to()
     {
-        var capturedRequest = new HttpRequestMessage();
-        var handler = Helpers.HttpMessageHandlerStub.Capture(req => capturedRequest = req);
-        var httpClient = new HttpClient(handler) { BaseAddress = BrevoBaseAddress };
-
-        var sender = new BrevoSender(httpClient, Helpers.OptionsOf(_options));
-        var email = Helpers.CreateTestEmail();
-
-        await sender.SendAsync(email);
-
-        var body = await capturedRequest.Content!.ReadAsStringAsync();
-        using var json = JsonDocument.Parse(body);
-
-        var to = json.RootElement.GetProperty("to").EnumerateArray().ToList();
-        to.Should().HaveCount(1);
-        to[0].GetProperty("email").GetString().Should().Be("recipient@example.com");
-        to[0].GetProperty("name").GetString().Should().Be("Recipient");
-    }
-
-    [Fact]
-    public async Task SendAsync_maps_subject_and_content()
-    {
-        var capturedRequest = new HttpRequestMessage();
-        var handler = Helpers.HttpMessageHandlerStub.Capture(req => capturedRequest = req);
-        var httpClient = new HttpClient(handler) { BaseAddress = BrevoBaseAddress };
-
-        var sender = new BrevoSender(httpClient, Helpers.OptionsOf(_options));
-        var email = Helpers.CreateTestEmail();
-
-        await sender.SendAsync(email);
-
-        var body = await capturedRequest.Content!.ReadAsStringAsync();
-        using var json = JsonDocument.Parse(body);
-
-        json.RootElement.GetProperty("subject").GetString().Should().Be("Test Subject");
-        json.RootElement.GetProperty("htmlContent").GetString().Should().Be("<p>Hello HTML</p>");
-        json.RootElement.GetProperty("textContent").GetString().Should().Be("Hello plain text");
-    }
-
-    [Fact]
-    public async Task SendAsync_includes_attachment()
-    {
-        var capturedRequest = new HttpRequestMessage();
-        var handler = Helpers.HttpMessageHandlerStub.Capture(req => capturedRequest = req);
-        var httpClient = new HttpClient(handler) { BaseAddress = BrevoBaseAddress };
-
-        var sender = new BrevoSender(httpClient, Helpers.OptionsOf(_options));
-        var email = Helpers.CreateTestEmailWithAttachment();
-
-        await sender.SendAsync(email);
-
-        var body = await capturedRequest.Content!.ReadAsStringAsync();
-        using var json = JsonDocument.Parse(body);
-
-        var attachments = json.RootElement.GetProperty("attachment").EnumerateArray().ToList();
-        attachments.Should().HaveCount(1);
-        attachments[0].GetProperty("name").GetString().Should().Be("report.pdf");
-        attachments[0].GetProperty("content").GetString().Should().NotBeNullOrEmpty();
-    }
-
-    [Fact]
-    public async Task SendAsync_maps_reply_to()
-    {
-        var capturedRequest = new HttpRequestMessage();
-        var handler = Helpers.HttpMessageHandlerStub.Capture(req => capturedRequest = req);
-        var httpClient = new HttpClient(handler) { BaseAddress = BrevoBaseAddress };
-
-        var sender = new BrevoSender(httpClient, Helpers.OptionsOf(_options));
         var email = Helpers.CreateTestEmail() with
         {
             ReplyTo = new EmailAddress("reply@example.com", "Reply Person")
         };
 
-        await sender.SendAsync(email);
+        var request = BrevoSender.BuildSendSmtpEmail(email);
 
-        var body = await capturedRequest.Content!.ReadAsStringAsync();
-        using var json = JsonDocument.Parse(body);
-
-        json.RootElement.GetProperty("replyTo").GetProperty("email").GetString().Should().Be("reply@example.com");
-        json.RootElement.GetProperty("replyTo").GetProperty("name").GetString().Should().Be("Reply Person");
+        request.ReplyTo.Should().NotBeNull();
+        request.ReplyTo!.Email.Should().Be("reply@example.com");
+        request.ReplyTo.Name.Should().Be("Reply Person");
     }
 
     [Fact]
-    public async Task SendAsync_maps_cc_and_bcc()
+    public void BuildSendSmtpEmail_maps_cc_and_bcc()
     {
-        var capturedRequest = new HttpRequestMessage();
-        var handler = Helpers.HttpMessageHandlerStub.Capture(req => capturedRequest = req);
-        var httpClient = new HttpClient(handler) { BaseAddress = BrevoBaseAddress };
-
-        var sender = new BrevoSender(httpClient, Helpers.OptionsOf(_options));
         var email = Helpers.CreateTestEmail() with
         {
             Cc = [new EmailAddress("cc@example.com", "CC Person")],
             Bcc = [new EmailAddress("bcc@example.com")]
         };
 
-        await sender.SendAsync(email);
+        var request = BrevoSender.BuildSendSmtpEmail(email);
 
-        var body = await capturedRequest.Content!.ReadAsStringAsync();
-        using var json = JsonDocument.Parse(body);
+        request.Cc.Should().HaveCount(1);
+        request.Cc![0].Email.Should().Be("cc@example.com");
+        request.Cc[0].Name.Should().Be("CC Person");
 
-        json.RootElement.GetProperty("cc")[0].GetProperty("email").GetString().Should().Be("cc@example.com");
-        json.RootElement.GetProperty("bcc")[0].GetProperty("email").GetString().Should().Be("bcc@example.com");
+        request.Bcc.Should().HaveCount(1);
+        request.Bcc![0].Email.Should().Be("bcc@example.com");
+    }
+
+    [Fact]
+    public void BuildSendSmtpEmail_maps_attachment()
+    {
+        var email = Helpers.CreateTestEmailWithAttachment();
+
+        var request = BrevoSender.BuildSendSmtpEmail(email);
+
+        request.Attachment.Should().HaveCount(1);
+        request.Attachment![0].Name.Should().Be("report.pdf");
+        request.Attachment[0].Content.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public void BuildSendSmtpEmail_maps_headers()
+    {
+        var email = Helpers.CreateTestEmail() with
+        {
+            Headers = new Dictionary<string, string>
+            {
+                ["X-Custom-Header"] = "custom-value"
+            }
+        };
+
+        var request = BrevoSender.BuildSendSmtpEmail(email);
+
+        request.Headers.Should().BeEquivalentTo(email.Headers);
+    }
+
+    [Fact]
+    public void BuildSendSmtpEmail_maps_tags()
+    {
+        var email = Helpers.CreateTestEmail() with
+        {
+            Tags = ["tag1", "tag2"]
+        };
+
+        var request = BrevoSender.BuildSendSmtpEmail(email);
+
+        request.Tags.Should().BeEquivalentTo(email.Tags);
     }
 
     [Fact]
     public async Task SendAsync_returns_success_with_messageId()
     {
-        var response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent("{\"messageId\": \"brevo-msg-123\"}")
-        };
-        var handler = Helpers.HttpMessageHandlerStub.Returning(response);
-        var httpClient = new HttpClient(handler) { BaseAddress = BrevoBaseAddress };
+        var api = Substitute.For<ITransactionalEmailsApi>();
+        api.SendTransacEmailAsync(Arg.Any<SendSmtpEmail>())
+            .Returns(new CreateSmtpEmail("brevo-msg-123", null));
 
-        var sender = new BrevoSender(httpClient, Helpers.OptionsOf(_options));
+        var sender = new BrevoSender(api);
         var email = Helpers.CreateTestEmail();
 
         var result = await sender.SendAsync(email);
 
         result.IsSuccess.Should().BeTrue();
         result.MessageId.Should().Be("brevo-msg-123");
+        await api.Received(1).SendTransacEmailAsync(Arg.Is<SendSmtpEmail>(r => r.Subject == "Test Subject"));
     }
 
     [Fact]
     public async Task SendAsync_returns_failure_on_api_error()
     {
-        var response = new HttpResponseMessage(HttpStatusCode.Unauthorized)
-        {
-            Content = new StringContent("{\"code\": \"unauthorized\", \"message\": \"Invalid API key\"}")
-        };
-        var handler = Helpers.HttpMessageHandlerStub.Returning(response);
-        var httpClient = new HttpClient(handler) { BaseAddress = BrevoBaseAddress };
+        var api = Substitute.For<ITransactionalEmailsApi>();
+        api.SendTransacEmailAsync(Arg.Any<SendSmtpEmail>())
+            .Returns(Task.FromException<CreateSmtpEmail>(new brevo_csharp.Client.ApiException(401, "Invalid API key")));
 
-        var sender = new BrevoSender(httpClient, Helpers.OptionsOf(_options));
+        var sender = new BrevoSender(api);
         var email = Helpers.CreateTestEmail();
 
         var result = await sender.SendAsync(email);
 
         result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Invalid API key");
     }
 
     [Fact]
-    public void Constructor_throws_on_null_httpClient()
+    public async Task SendAsync_throws_when_cancellation_is_requested()
     {
-        var act = () => new BrevoSender(null!, Helpers.OptionsOf(_options));
-        act.Should().Throw<ArgumentNullException>();
-    }
+        var api = Substitute.For<ITransactionalEmailsApi>();
+        var sender = new BrevoSender(api);
+        var email = Helpers.CreateTestEmail();
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
 
-    [Fact]
-    public void Constructor_throws_on_null_options()
-    {
-        var act = () => new BrevoSender(new HttpClient(), null!);
-        act.Should().Throw<ArgumentNullException>();
+        var act = async () => await sender.SendAsync(email, cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        await api.DidNotReceive().SendTransacEmailAsync(Arg.Any<SendSmtpEmail>());
     }
 }

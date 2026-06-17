@@ -1,12 +1,9 @@
-using FluentAssertions;
 using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
 using MailVolt.Transport.Smtp;
 using MailVolt.Transport.Smtp.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using Xunit;
 
 namespace MailVolt.Transport.Tests;
 

@@ -1,31 +1,34 @@
-using System.Net.Http.Json;
-using System.Text.Json.Serialization;
-using MailVolt.Core.Interfaces;
 using MailVolt.Core.Models;
 using Microsoft.Extensions.Options;
+using brevo_csharp.Api;
+using brevo_csharp.Model;
+using ClientConfiguration = brevo_csharp.Client.Configuration;
 
 namespace MailVolt.Transport.Brevo;
 
 /// <summary>
-/// Sends email via the Brevo (formerly Sendinblue) v3 API.
+/// Sends email via the Brevo (formerly Sendinblue) API using the official Brevo C# SDK.
 /// </summary>
 public sealed class BrevoSender : IBrevoSender
 {
-    private readonly HttpClient _httpClient;
-    private readonly BrevoSenderOptions _options;
+    private readonly ITransactionalEmailsApi _api;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BrevoSender"/> class.
     /// </summary>
-    /// <param name="httpClient">The <see cref="HttpClient"/> configured with the Brevo base address and resilience.</param>
     /// <param name="options">The Brevo sender options containing the API key.</param>
-    public BrevoSender(HttpClient httpClient, IOptions<BrevoSenderOptions> options)
+    public BrevoSender(IOptions<BrevoSenderOptions> options)
     {
-        ArgumentNullException.ThrowIfNull(httpClient);
         ArgumentNullException.ThrowIfNull(options);
 
-        _httpClient = httpClient;
-        _options = options.Value;
+        var configuration = new ClientConfiguration();
+        configuration.AddApiKey("api-key", options.Value.ApiKey);
+        _api = new TransactionalEmailsApi(configuration);
+    }
+
+    internal BrevoSender(ITransactionalEmailsApi api)
+    {
+        _api = api;
     }
 
     /// <inheritdoc />
@@ -35,19 +38,16 @@ public sealed class BrevoSender : IBrevoSender
 
         try
         {
-            var request = BuildRequest(email);
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/v3/smtp/email")
-            {
-                Headers = { { "api-key", _options.ApiKey } },
-                Content = JsonContent.Create(request),
-            };
+            cancellationToken.ThrowIfCancellationRequested();
 
-            var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
-            response.EnsureSuccessStatusCode();
-
-            var result = await response.Content.ReadFromJsonAsync<BrevoSendResponse>(cancellationToken: cancellationToken);
+            var request = BuildSendSmtpEmail(email);
+            var result = await _api.SendTransacEmailAsync(request).ConfigureAwait(false);
 
             return EmailResult.Success(result?.MessageId);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -55,115 +55,60 @@ public sealed class BrevoSender : IBrevoSender
         }
     }
 
-    private static BrevoSendRequest BuildRequest(EmailMessage email)
+    internal static SendSmtpEmail BuildSendSmtpEmail(EmailMessage email)
     {
         var sender = email.From is not null
-            ? new BrevoAddress { Name = email.From.DisplayName, Email = email.From.Address }
+            ? new SendSmtpEmailSender(email.From.DisplayName, email.From.Address)
             : null;
 
-        BrevoAddress? replyTo = email.ReplyTo is not null
-            ? new BrevoAddress { Name = email.ReplyTo.DisplayName, Email = email.ReplyTo.Address }
+        var replyTo = email.ReplyTo is not null
+            ? new SendSmtpEmailReplyTo(email.ReplyTo.Address, email.ReplyTo.DisplayName)
             : null;
 
-        var attachments = new List<BrevoAttachment>(email.Attachments.Count);
+        var attachments = new List<SendSmtpEmailAttachment>(email.Attachments.Count);
 
         foreach (var attachment in email.Attachments)
         {
             using var ms = new MemoryStream();
             attachment.Content.CopyTo(ms);
-            attachments.Add(new BrevoAttachment
-            {
-                Name = attachment.FileName,
-                Content = Convert.ToBase64String(ms.ToArray()),
-            });
+            attachments.Add(new SendSmtpEmailAttachment(null, ms.ToArray(), attachment.FileName));
         }
 
-        return new BrevoSendRequest
-        {
-            Sender = sender,
-            To = MapAddresses(email.To),
-            Cc = MapOptionalAddresses(email.Cc),
-            Bcc = MapOptionalAddresses(email.Bcc),
-            ReplyTo = replyTo,
-            Subject = email.Subject,
-            HtmlContent = email.HtmlBody,
-            TextContent = email.TextBody,
-            Attachments = attachments.Count > 0 ? attachments : null,
-        };
+        return new SendSmtpEmail(
+            sender: sender,
+            to: MapTo(email.To),
+            bcc: MapBcc(email.Bcc),
+            cc: MapCc(email.Cc),
+            htmlContent: email.HtmlBody,
+            textContent: email.TextBody,
+            subject: email.Subject,
+            replyTo: replyTo,
+            attachment: attachments.Count > 0 ? attachments : null,
+            headers: email.Headers.Count > 0 ? email.Headers : null,
+            templateId: null,
+            _params: null,
+            messageVersions: null,
+            tags: email.Tags.Count > 0 ? email.Tags.ToList() : null,
+            scheduledAt: null,
+            batchId: null);
     }
 
-    private static List<BrevoAddress> MapAddresses(IReadOnlyList<EmailAddress> addresses)
+    private static List<SendSmtpEmailTo> MapTo(IReadOnlyList<EmailAddress> addresses)
     {
-        return addresses.Select(a => new BrevoAddress { Name = a.DisplayName, Email = a.Address }).ToList();
+        return [.. addresses.Select(a => new SendSmtpEmailTo(a.Address, a.DisplayName))];
     }
 
-    private static List<BrevoAddress>? MapOptionalAddresses(IReadOnlyList<EmailAddress> addresses)
+    private static List<SendSmtpEmailCc>? MapCc(IReadOnlyList<EmailAddress> addresses)
     {
-        return addresses.Count > 0 ? MapAddresses(addresses) : null;
+        return addresses.Count > 0
+            ? [.. addresses.Select(a => new SendSmtpEmailCc(a.Address, a.DisplayName))]
+            : null;
     }
 
-    // ──────────────────────────────
-    //  Internal request / response DTOs
-    // ──────────────────────────────
-
-    private sealed class BrevoSendRequest
+    private static List<SendSmtpEmailBcc>? MapBcc(IReadOnlyList<EmailAddress> addresses)
     {
-        [JsonPropertyName("sender")]
-        public BrevoAddress? Sender { get; set; }
-
-        [JsonPropertyName("to")]
-        public List<BrevoAddress> To { get; set; } = [];
-
-        [JsonPropertyName("cc")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public List<BrevoAddress>? Cc { get; set; }
-
-        [JsonPropertyName("bcc")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public List<BrevoAddress>? Bcc { get; set; }
-
-        [JsonPropertyName("replyTo")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public BrevoAddress? ReplyTo { get; set; }
-
-        [JsonPropertyName("subject")]
-        public string Subject { get; set; } = string.Empty;
-
-        [JsonPropertyName("htmlContent")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? HtmlContent { get; set; }
-
-        [JsonPropertyName("textContent")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? TextContent { get; set; }
-
-        [JsonPropertyName("attachment")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public List<BrevoAttachment>? Attachments { get; set; }
-    }
-
-    private sealed class BrevoAddress
-    {
-        [JsonPropertyName("name")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? Name { get; set; }
-
-        [JsonPropertyName("email")]
-        public string Email { get; set; } = string.Empty;
-    }
-
-    private sealed class BrevoAttachment
-    {
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
-
-        [JsonPropertyName("content")]
-        public string Content { get; set; } = string.Empty;
-    }
-
-    private sealed class BrevoSendResponse
-    {
-        [JsonPropertyName("messageId")]
-        public string? MessageId { get; set; }
+        return addresses.Count > 0
+            ? [.. addresses.Select(a => new SendSmtpEmailBcc(a.Address, a.DisplayName))]
+            : null;
     }
 }

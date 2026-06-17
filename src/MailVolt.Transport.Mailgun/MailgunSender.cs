@@ -11,6 +11,11 @@ namespace MailVolt.Transport.Mailgun;
 /// </summary>
 internal sealed class MailgunSender : IMailgunSender
 {
+    private const string NativeTemplateHeaderName = "X-MailVolt-Template";
+    private const string NativeTemplateVariablesHeaderName = "X-MailVolt-Template-Variables";
+    private const string MailgunTemplateFieldName = "template";
+    private const string MailgunTemplateVariablesFieldName = "t:variables";
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -63,13 +68,10 @@ internal sealed class MailgunSender : IMailgunSender
 
             var result = JsonSerializer.Deserialize<MailgunSendResponse>(body, JsonOptions);
 
-            if (result?.Id is null)
-            {
-                return EmailResult.Failure(
-                    "Mailgun response did not contain a message ID.");
-            }
-
-            return EmailResult.Success(result.Id);
+            return result?.Id is null
+                ? EmailResult.Failure(
+                    "Mailgun response did not contain a message ID.")
+                : EmailResult.Success(result.Id);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -82,8 +84,11 @@ internal sealed class MailgunSender : IMailgunSender
     private MultipartFormDataContent BuildMultipartContent(EmailMessage email)
     {
         var content = new MultipartFormDataContent();
+        var nativeTemplate = TryGetHeaderValue(email.Headers, NativeTemplateHeaderName);
+        var nativeTemplateVariables = TryGetHeaderValue(email.Headers, NativeTemplateVariablesHeaderName);
+        ValidateNativeTemplateHeaders(nativeTemplate, nativeTemplateVariables);
+        var usingNativeTemplate = _options.UseNativeTemplates && nativeTemplate is not null;
 
-        // --- Recipients (Mailgun accepts comma-separated values) ---
         if (email.From is not null)
         {
             content.Add(new StringContent(email.From.ToString()), "from");
@@ -93,45 +98,56 @@ internal sealed class MailgunSender : IMailgunSender
         AddAddresses(content, "cc", email.Cc);
         AddAddresses(content, "bcc", email.Bcc);
 
-        // --- Subject ---
         content.Add(new StringContent(email.Subject), "subject");
 
-        // --- Body ---
-        if (email.TextBody is { Length: > 0 })
+        switch (usingNativeTemplate)
         {
-            content.Add(new StringContent(email.TextBody), "text");
+            case true:
+            {
+                content.Add(new StringContent(nativeTemplate!), MailgunTemplateFieldName);
+
+                if (nativeTemplateVariables is { } templateVariables)
+                {
+                    content.Add(new StringContent(templateVariables), MailgunTemplateVariablesFieldName);
+                }
+
+                break;
+            }
+            case false when email.TextBody is { Length: > 0 }:
+                content.Add(new StringContent(email.TextBody), "text");
+                break;
         }
 
-        if (email.HtmlBody is { Length: > 0 })
+        if (!usingNativeTemplate && email.HtmlBody is { Length: > 0 })
         {
             content.Add(new StringContent(email.HtmlBody), "html");
         }
 
-        // --- Reply-To ---
         if (email.ReplyTo is not null)
         {
             content.Add(new StringContent(email.ReplyTo.ToString()), "h:Reply-To");
         }
 
-        // --- Priority ---
         if (email.Priority != EmailPriority.Normal && PriorityMap.TryGetValue(email.Priority, out var priorityValue))
         {
             content.Add(new StringContent(priorityValue), "h:X-Priority");
         }
 
-        // --- Custom headers ---
         foreach (var (key, value) in email.Headers)
         {
+            if (IsNativeTemplateHeader(key))
+            {
+                continue;
+            }
+
             content.Add(new StringContent(value), $"h:{key}");
         }
 
-        // --- Tags ---
         foreach (var tag in email.Tags)
         {
             content.Add(new StringContent(tag), "o:tag");
         }
 
-        // --- Attachments and inline images ---
         foreach (var attachment in email.Attachments)
         {
             var streamContent = new StreamContent(attachment.Content);
@@ -143,7 +159,6 @@ internal sealed class MailgunSender : IMailgunSender
 
             if (attachment.IsInline)
             {
-                // Inline image — set Content-ID and use "inline" disposition
                 streamContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("inline")
                 {
                     FileName = attachment.FileName,
@@ -158,7 +173,6 @@ internal sealed class MailgunSender : IMailgunSender
             }
             else
             {
-                // Regular attachment — use "attachment" disposition
                 content.Add(streamContent, "attachment", attachment.FileName);
             }
         }
@@ -166,18 +180,48 @@ internal sealed class MailgunSender : IMailgunSender
         return content;
     }
 
-    private static void AddAddresses(MultipartFormDataContent content, string fieldName, IReadOnlyList<EmailAddress> addresses)
+    private void ValidateNativeTemplateHeaders(string? nativeTemplate, string? nativeTemplateVariables)
+    {
+        if (!_options.UseNativeTemplates || nativeTemplateVariables is null || nativeTemplate is not null)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(
+            $"'{NativeTemplateVariablesHeaderName}' requires '{NativeTemplateHeaderName}' when native templates are enabled.");
+    }
+
+    private static void AddAddresses(MultipartFormDataContent content, string fieldName,
+        IReadOnlyList<EmailAddress> addresses)
     {
         if (addresses.Count == 0)
         {
             return;
         }
 
-        // Mailgun accepts multiple recipients as multiple field entries with the same name
         foreach (var address in addresses)
         {
             content.Add(new StringContent(address.ToString()), fieldName);
         }
+    }
+
+    private static bool IsNativeTemplateHeader(string key) =>
+        key.Equals(NativeTemplateHeaderName, StringComparison.OrdinalIgnoreCase) ||
+        key.Equals(NativeTemplateVariablesHeaderName, StringComparison.OrdinalIgnoreCase);
+
+    private static string? TryGetHeaderValue(
+        IReadOnlyDictionary<string, string> headers,
+        string headerName)
+    {
+        foreach (var (key, value) in headers)
+        {
+            if (key.Equals(headerName, StringComparison.OrdinalIgnoreCase))
+            {
+                return string.IsNullOrWhiteSpace(value) ? null : value;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

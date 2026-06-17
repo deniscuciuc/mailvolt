@@ -1,40 +1,38 @@
-using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using MailVolt.Core.Interfaces;
 using MailVolt.Core.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using PostmarkDotNet;
+using PostmarkDotNet.Model;
 
 namespace MailVolt.Transport.Postmark;
 
 /// <summary>
-/// Sends email messages via the Postmark API.
+/// Sends email messages via the Postmark API using the official Postmark.NET SDK.
 /// </summary>
 internal sealed class PostmarkSender : IPostmarkSender
 {
-    private readonly HttpClient _httpClient;
+    private readonly IPostmarkClient _client;
     private readonly PostmarkSenderOptions _options;
     private readonly ILogger<PostmarkSender> _logger;
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
-
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PostmarkSender"/> class.
+    /// </summary>
+    /// <param name="client">The Postmark client used to send messages.</param>
+    /// <param name="options">The Postmark sender options.</param>
+    /// <param name="logger">The logger.</param>
     public PostmarkSender(
-        IHttpClientFactory httpClientFactory,
+        IPostmarkClient client,
         IOptions<PostmarkSenderOptions> options,
         ILogger<PostmarkSender> logger)
     {
-        ArgumentNullException.ThrowIfNull(httpClientFactory);
+        ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
 
+        _client = client;
         _options = options.Value;
         _logger = logger;
-        _httpClient = httpClientFactory.CreateClient(PostmarkHttpClient.Name);
     }
 
     /// <inheritdoc />
@@ -44,40 +42,33 @@ internal sealed class PostmarkSender : IPostmarkSender
 
         try
         {
-            var request = MapToRequest(email);
-            var response = await _httpClient.PostAsJsonAsync(
-                "/email",
-                request,
-                JsonOptions,
-                cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
 
-            if (!response.IsSuccessStatusCode)
+            var message = MapToPostmarkMessage(email, _options);
+            var response = await _client.SendMessageAsync(message, cancellationToken).ConfigureAwait(false);
+
+            if (response.Status == PostmarkStatus.Success)
             {
-                var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
-                _logger.LogError(
-                    "Postmark API returned {StatusCode}: {ErrorBody}",
-                    (int)response.StatusCode,
-                    errorBody);
-                return EmailResult.Failure(
-                    $"Postmark API returned {(int)response.StatusCode}: {errorBody}");
+                var messageId = response.MessageID == Guid.Empty
+                    ? null
+                    : response.MessageID.ToString();
+
+                _logger.LogInformation(
+                    "Email sent via Postmark. MessageID: {MessageID}, To: {To}",
+                    messageId,
+                    response.To);
+
+                return EmailResult.Success(messageId);
             }
 
-            var result = await response.Content.ReadFromJsonAsync<PostmarkSendResponse>(
-                JsonOptions,
-                cancellationToken);
+            _logger.LogError(
+                "Postmark API returned {Status} (ErrorCode: {ErrorCode}): {Message}",
+                response.Status,
+                response.ErrorCode,
+                response.Message);
 
-            if (result is null)
-            {
-                _logger.LogError("Postmark API returned an empty response body");
-                return EmailResult.Failure("Postmark API returned an empty response body");
-            }
-
-            _logger.LogInformation(
-                "Email sent via Postmark. MessageID: {MessageID}, To: {To}",
-                result.MessageID,
-                result.To);
-
-            return EmailResult.Success(result.MessageID);
+            return EmailResult.Failure(
+                $"Postmark API returned {response.Status} (ErrorCode: {response.ErrorCode}): {response.Message}");
         }
         catch (OperationCanceledException)
         {
@@ -92,9 +83,9 @@ internal sealed class PostmarkSender : IPostmarkSender
     }
 
     /// <summary>
-    /// Maps a MailVolt <see cref="EmailMessage"/> to a <see cref="PostmarkSendRequest"/>.
+    /// Maps a MailVolt <see cref="EmailMessage"/> to a <see cref="PostmarkMessage"/>.
     /// </summary>
-    private PostmarkSendRequest MapToRequest(EmailMessage email)
+    internal static PostmarkMessage MapToPostmarkMessage(EmailMessage email, PostmarkSenderOptions options)
     {
         var from = email.From?.ToString();
         if (string.IsNullOrWhiteSpace(from))
@@ -103,7 +94,7 @@ internal sealed class PostmarkSender : IPostmarkSender
                 "The email message must have a 'From' address specified.");
         }
 
-        return new PostmarkSendRequest
+        var message = new PostmarkMessage
         {
             From = from,
             To = FormatAddressList(email.To),
@@ -114,35 +105,26 @@ internal sealed class PostmarkSender : IPostmarkSender
             HtmlBody = email.HtmlBody,
             TextBody = email.TextBody,
             Tag = email.Tags.Count > 0 ? email.Tags[0] : null,
-            Headers = email.Headers.Count > 0
-                ? email.Headers
-                    .Select(kvp => new PostmarkHeader { Name = kvp.Key, Value = kvp.Value })
-                    .ToList()
-                : null,
-            Attachments = email.Attachments.Count > 0
-                ? email.Attachments.Select(MapAttachment).ToList()
-                : null,
-            MessageStream = _options.MessageStream,
+            MessageStream = options.MessageStream,
         };
-    }
 
-    /// <summary>
-    /// Maps an <see cref="EmailAttachment"/> to a <see cref="PostmarkAttachment"/>,
-    /// converting the content stream to a base64 string.
-    /// </summary>
-    private static PostmarkAttachment MapAttachment(EmailAttachment attachment)
-    {
-        using var memoryStream = new MemoryStream();
-        attachment.Content.CopyTo(memoryStream);
-        var base64Content = Convert.ToBase64String(memoryStream.ToArray());
-
-        return new PostmarkAttachment
+        if (email.Headers.Count > 0)
         {
-            Name = attachment.FileName,
-            Content = base64Content,
-            ContentType = attachment.ContentType,
-            ContentID = attachment.ContentId,
-        };
+            message.Headers = new HeaderCollection(new Dictionary<string, string>(email.Headers));
+        }
+
+        foreach (var attachment in email.Attachments)
+        {
+            using var memoryStream = new MemoryStream();
+            attachment.Content.CopyTo(memoryStream);
+            message.AddAttachment(
+                memoryStream.ToArray(),
+                attachment.FileName,
+                attachment.ContentType,
+                attachment.ContentId);
+        }
+
+        return message;
     }
 
     /// <summary>
@@ -150,10 +132,7 @@ internal sealed class PostmarkSender : IPostmarkSender
     /// </summary>
     private static string FormatAddressList(IReadOnlyList<EmailAddress> addresses)
     {
-        if (addresses.Count == 0)
-            return string.Empty;
-
-        return string.Join(", ", addresses.Select(a => a.ToString()));
+        return addresses.Count == 0 ? string.Empty : string.Join(", ", addresses.Select(a => a.ToString()));
     }
 
     /// <summary>
@@ -161,95 +140,6 @@ internal sealed class PostmarkSender : IPostmarkSender
     /// </summary>
     private static string? FormatAddressListOrNull(IReadOnlyList<EmailAddress> addresses)
     {
-        if (addresses.Count == 0)
-            return null;
-
-        return FormatAddressList(addresses);
-    }
-
-    // ──────────────────────────────────────────────
-    //  Internal DTOs for Postmark API communication
-    // ──────────────────────────────────────────────
-
-    internal sealed record PostmarkSendRequest
-    {
-        [JsonPropertyName("From")]
-        public required string From { get; init; }
-
-        [JsonPropertyName("To")]
-        public required string To { get; init; }
-
-        [JsonPropertyName("Cc")]
-        public string? Cc { get; init; }
-
-        [JsonPropertyName("Bcc")]
-        public string? Bcc { get; init; }
-
-        [JsonPropertyName("ReplyTo")]
-        public string? ReplyTo { get; init; }
-
-        [JsonPropertyName("Subject")]
-        public required string Subject { get; init; }
-
-        [JsonPropertyName("HtmlBody")]
-        public string? HtmlBody { get; init; }
-
-        [JsonPropertyName("TextBody")]
-        public string? TextBody { get; init; }
-
-        [JsonPropertyName("Tag")]
-        public string? Tag { get; init; }
-
-        [JsonPropertyName("Headers")]
-        public IReadOnlyList<PostmarkHeader>? Headers { get; init; }
-
-        [JsonPropertyName("Attachments")]
-        public IReadOnlyList<PostmarkAttachment>? Attachments { get; init; }
-
-        [JsonPropertyName("MessageStream")]
-        public string? MessageStream { get; init; }
-    }
-
-    internal sealed record PostmarkHeader
-    {
-        [JsonPropertyName("Name")]
-        public required string Name { get; init; }
-
-        [JsonPropertyName("Value")]
-        public required string Value { get; init; }
-    }
-
-    internal sealed record PostmarkAttachment
-    {
-        [JsonPropertyName("Name")]
-        public required string Name { get; init; }
-
-        [JsonPropertyName("Content")]
-        public required string Content { get; init; }
-
-        [JsonPropertyName("ContentType")]
-        public required string ContentType { get; init; }
-
-        [JsonPropertyName("ContentID")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? ContentID { get; init; }
-    }
-
-    internal sealed record PostmarkSendResponse
-    {
-        [JsonPropertyName("To")]
-        public string? To { get; init; }
-
-        [JsonPropertyName("SubmittedAt")]
-        public string? SubmittedAt { get; init; }
-
-        [JsonPropertyName("MessageID")]
-        public string? MessageID { get; init; }
-
-        [JsonPropertyName("ErrorCode")]
-        public int ErrorCode { get; init; }
-
-        [JsonPropertyName("Message")]
-        public string? Message { get; init; }
+        return addresses.Count == 0 ? null : FormatAddressList(addresses);
     }
 }

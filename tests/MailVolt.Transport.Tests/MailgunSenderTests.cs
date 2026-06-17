@@ -1,9 +1,5 @@
-using System.Net;
-using System.Text;
 using MailVolt.Core.Interfaces;
 using MailVolt.Transport.Mailgun;
-using Microsoft.Extensions.Options;
-using Xunit;
 
 namespace MailVolt.Transport.Tests;
 
@@ -234,6 +230,76 @@ public sealed class MailgunSenderTests
         body.Should().Contain("camp-123");
         body.Should().Contain("name=\"h:X-User-Id\"");
         body.Should().Contain("user-456");
+    }
+
+    [Fact]
+    public async Task SendAsync_with_native_templates_maps_reserved_headers_to_mailgun_fields()
+    {
+        var capturedRequest = new HttpRequestMessage();
+        var handler = Helpers.HttpMessageHandlerStub.Capture(req => capturedRequest = req);
+        var httpClient = new HttpClient(handler);
+        var options = new MailgunSenderOptions
+        {
+            ApiKey = _options.ApiKey,
+            Domain = _options.Domain,
+            BaseUrl = _options.BaseUrl,
+            UseNativeTemplates = true
+        };
+
+        var sender = new MailgunSender(httpClient, Helpers.OptionsOf(options));
+        var email = Helpers.CreateTestEmail() with
+        {
+            Headers = new Dictionary<string, string>
+            {
+                ["X-MailVolt-Template"] = "order-confirmation",
+                ["X-MailVolt-Template-Variables"] = """{"orderId":42,"customer":"Alice"}""",
+                ["X-Campaign-Id"] = "camp-123"
+            }
+        };
+
+        await sender.SendAsync(email);
+
+        var body = await capturedRequest.Content!.ReadAsStringAsync();
+
+        body.Should().Contain("name=template");
+        body.Should().Contain("order-confirmation");
+        body.Should().Contain("name=\"t:variables\"");
+        body.Should().Contain("\"customer\":\"Alice\"");
+        body.Should().Contain("name=\"h:X-Campaign-Id\"");
+        body.Should().Contain("camp-123");
+        body.Should().NotContain("name=text");
+        body.Should().NotContain("name=html");
+        body.Should().NotContain("name=\"h:X-MailVolt-Template\"");
+        body.Should().NotContain("name=\"h:X-MailVolt-Template-Variables\"");
+    }
+
+    [Fact]
+    public async Task SendAsync_with_native_template_variables_but_no_template_returns_failure()
+    {
+        var handler = Helpers.HttpMessageHandlerStub.Returning(new HttpResponseMessage(HttpStatusCode.OK));
+        var httpClient = new HttpClient(handler);
+        var options = new MailgunSenderOptions
+        {
+            ApiKey = _options.ApiKey,
+            Domain = _options.Domain,
+            BaseUrl = _options.BaseUrl,
+            UseNativeTemplates = true
+        };
+
+        var sender = new MailgunSender(httpClient, Helpers.OptionsOf(options));
+        var email = Helpers.CreateTestEmail() with
+        {
+            Headers = new Dictionary<string, string>
+            {
+                ["X-MailVolt-Template-Variables"] = """{"orderId":42}"""
+            }
+        };
+
+        var result = await sender.SendAsync(email);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Exception.Should().NotBeNull();
+        result.Exception!.Message.Should().Contain("X-MailVolt-Template");
     }
 
     [Fact]
