@@ -12,6 +12,7 @@
     <ProjectReference Include="../../src/MailVolt.Core/MailVolt.Core.csproj" />
     <ProjectReference Include="../../src/MailVolt.Transport.Resend/MailVolt.Transport.Resend.csproj" />
     <ProjectReference Include="../../src/MailVolt.Transport.Smtp/MailVolt.Transport.Smtp.csproj" />
+    <ProjectReference Include="../../src/MailVolt.Testing/MailVolt.Testing.csproj" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
   </ItemGroup>
