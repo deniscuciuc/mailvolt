@@ -91,8 +91,7 @@ The CI pipeline (`.github/workflows/ci.yml`) builds and tests on `ubuntu-latest`
 
 Release and publish are handled by separate workflows:
 
-- `.github/workflows/release.yml` triggers on `v*.*.*` tags, builds, packs, creates a GitHub release, and uploads packages as release assets.
-- `.github/workflows/publish-nuget.yml` triggers on a published release and pushes packages to NuGet.org using **Trusted Publishing** (OIDC). No long-lived `NUGET_API_KEY` secret is required; the workflow exchanges a short-lived GitHub OIDC token for a temporary NuGet API key via `NuGet/login@v1`.
+- `.github/workflows/release.yml` triggers on `v*.*.*` tags, builds, packs, creates a GitHub release, and publishes the packages to NuGet.org using **Trusted Publishing** (OIDC). No long-lived `NUGET_API_KEY` secret is required; the workflow exchanges a short-lived GitHub OIDC token for a temporary NuGet API key via `NuGet/login@v1`.
 
 ## Code Organization
 

@@ -28,10 +28,9 @@ NuGet sorts pre-release labels alphabetically, so `alpha.1` < `beta.1` < `previe
 
 ## Release workflow
 
-Releases are fully automated via GitHub Actions. There are two workflows:
+Releases are fully automated via a single GitHub Actions workflow:
 
-1. `.github/workflows/release.yml` — builds, tests, packs, and creates a GitHub release.
-2. `.github/workflows/publish-nuget.yml` — publishes the release packages to NuGet.org.
+- `.github/workflows/release.yml` — builds, tests, packs, creates a GitHub release, and publishes the packages to NuGet.org.
 
 ### Creating a release
 
@@ -56,8 +55,7 @@ Releases are fully automated via GitHub Actions. There are two workflows:
    - Packs all NuGet packages.
    - Creates a GitHub release with auto-generated notes.
    - Attaches `.nupkg` and `.snupkg` files as release assets.
-
-4. Publish the GitHub release (or let it auto-publish if not a draft). This triggers `publish-nuget.yml`.
+   - Publishes the packages to NuGet.org using Trusted Publishing.
 
 ## Publishing to NuGet.org
 

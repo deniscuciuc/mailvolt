@@ -5,7 +5,8 @@ on:
     tags: ['v*.*.*']
 
 permissions:
-  contents: write
+  contents: write # Create GitHub release and download release assets
+  id-token: write # NuGet Trusted Publishing (OIDC)
 
 jobs:
   release:
@@ -56,3 +57,27 @@ jobs:
             --title "$GITHUB_REF_NAME" \
             --generate-notes \
             ./artifacts/*.nupkg ./artifacts/*.snupkg
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: ./artifacts
+
+      - name: NuGet login (Trusted Publishing / OIDC)
+        uses: NuGet/login@v1
+        id: nuget_login
+        with:
+          user: ${{ vars.NUGET_USERNAME }}
+
+      - name: Push to NuGet.org
+        env:
+          NUGET_API_KEY: ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push ./artifacts/*.nupkg \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
