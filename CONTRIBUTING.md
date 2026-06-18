@@ -10,6 +10,7 @@ Thank you for your interest in MailVolt! This document provides guidelines for s
 - [Testing](#testing)
 - [Code Style](#code-style)
 - [Adding a New Transport](#adding-a-new-transport)
+- [Releasing](#releasing)
 - [Pull Request Guidelines](#pull-request-guidelines)
 
 ## Prerequisites
@@ -139,6 +140,16 @@ Transports are the pluggable email providers in MailVolt. To add a new one:
 5. **Add tests:** Create unit tests in `tests/MailVolt.Transport.Tests/` that mock the HTTP handler.
 
 6. **Update documentation:** List the new transport in the README table.
+
+## Releasing
+
+Releases are automated via GitHub Actions. See [`docs/release.md`](docs/release.md) for the full release process, including:
+
+- Versioning conventions (e.g. `0.1.0-preview.1` for first preview releases)
+- How to create a release by pushing a `v*.*.*` tag
+- NuGet Trusted Publishing setup (no long-lived API key required)
+
+Only maintainers can publish releases.
 
 ## Pull Request Guidelines
 

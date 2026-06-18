@@ -4,19 +4,34 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read  # Required to download release assets
+  id-token: write # Required for NuGet Trusted Publishing (OIDC)
+
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: secrets.NUGET_API_KEY != ''
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download release packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p ./artifacts
+          gh release download "${{ github.event.release.tag_name }}" \
+            --repo "${{ github.repository }}" \
+            --dir ./artifacts \
+            --pattern "*.nupkg" \
+            --pattern "*.snupkg"
+
+      - name: NuGet login (Trusted Publishing / OIDC)
+        uses: NuGet/login@v1
+        id: nuget_login
         with:
-          name: nuget-packages
-          path: ./artifacts
+          user: ${{ vars.NUGET_USERNAME }}
 
       - name: Push to NuGet.org
         env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_API_KEY: ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
         run: |
           dotnet nuget push ./artifacts/*.nupkg \
             --api-key "$NUGET_API_KEY" \
