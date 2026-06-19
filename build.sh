@@ -9,8 +9,8 @@ dotnet restore
 echo "==> Building (Release, warnings as errors)..."
 dotnet build --configuration Release --no-restore /p:TreatWarningsAsErrors=true
 
-echo "==> Running tests (excluding integration tests)..."
-dotnet test --configuration Release --no-build --filter "Category!=Integration"
+echo "==> Running tests (excluding integration tests) on .NET 10.0..."
+dotnet test --configuration Release --no-build --framework net10.0 --filter "Category!=Integration"
 
 echo "==> Packing..."
 rm -rf ./artifacts
