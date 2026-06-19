@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <PackageId>MailVolt.Core</PackageId>
-    <Version>1.0.0</Version>
+
     <Description>Core abstractions and fluent builder for MailVolt — modern .NET email library</Description>
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>

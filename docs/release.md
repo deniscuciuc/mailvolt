@@ -48,7 +48,7 @@ Releases are fully automated via a single GitHub Actions workflow:
    git push origin v0.1.0-preview.1
    ```
 
-   The `v` prefix is stripped by the workflow; the NuGet package version becomes `0.1.0-preview.1`.
+   The package version is derived from the tag by [MinVer](https://github.com/adamralph/minver), so the NuGet package version becomes `0.1.0-preview.1`.
 
 3. `release.yml` automatically:
    - Builds and tests the tagged commit.
@@ -70,7 +70,7 @@ MailVolt uses **NuGet Trusted Publishing** (OIDC) instead of a long-lived API ke
    - Enter:
      - **Owner**: `deniscuciuc`
      - **Repository**: `mailvolt`
-     - **Workflow filename**: `publish-nuget.yml`
+     - **Workflow filename**: `release.yml`
      - **Environment**: leave blank unless you are using a GitHub environment
    - Save the policy.
 

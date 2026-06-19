@@ -103,16 +103,16 @@ internal sealed class MailgunSender : IMailgunSender
         switch (usingNativeTemplate)
         {
             case true:
-            {
-                content.Add(new StringContent(nativeTemplate!), MailgunTemplateFieldName);
-
-                if (nativeTemplateVariables is { } templateVariables)
                 {
-                    content.Add(new StringContent(templateVariables), MailgunTemplateVariablesFieldName);
-                }
+                    content.Add(new StringContent(nativeTemplate!), MailgunTemplateFieldName);
 
-                break;
-            }
+                    if (nativeTemplateVariables is { } templateVariables)
+                    {
+                        content.Add(new StringContent(templateVariables), MailgunTemplateVariablesFieldName);
+                    }
+
+                    break;
+                }
             case false when email.TextBody is { Length: > 0 }:
                 content.Add(new StringContent(email.TextBody), "text");
                 break;

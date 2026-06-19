@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <PackageId>MailVolt.Templates.Handlebars</PackageId>
-    <Version>1.0.0</Version>
+
     <Description>Handlebars template rendering for MailVolt using Handlebars.Net</Description>
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>

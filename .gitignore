@@ -52,3 +52,6 @@ TestResults/
 # Example appsettings (credentials)
 **/appsettings.json
 testlog.*
+
+## Worktrees
+.worktrees/

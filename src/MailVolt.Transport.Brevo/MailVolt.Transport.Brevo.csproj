@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <PackageId>MailVolt.Transport.Brevo</PackageId>
-    <Version>1.0.0</Version>
+
     <Description>Brevo (formerly Sendinblue) transport for MailVolt</Description>
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>

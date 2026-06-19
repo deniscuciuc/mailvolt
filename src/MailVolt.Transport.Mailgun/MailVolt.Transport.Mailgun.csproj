@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <PackageId>MailVolt.Transport.Mailgun</PackageId>
-    <Version>1.0.0</Version>
+
     <Description>Mailgun transport for MailVolt</Description>
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>

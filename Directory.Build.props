@@ -33,10 +33,18 @@
     <Deterministic>true</Deterministic>
     <!-- Suppress NuGet vulnerability warnings for transitive dependencies and AOT/trimming analysis for config binding -->
     <NoWarn>$(NoWarn);NU1902;NU1903;NU1506;IL2026;IL3050</NoWarn>
+    <!-- Non-packable projects (examples, tests) should not warn during pack -->
+    <WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
   </PropertyGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\" />
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+  <PropertyGroup>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <PackageReference Include="MinVer" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="MailVolt.Core.Tests" />
