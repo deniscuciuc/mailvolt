@@ -49,7 +49,7 @@
     <!-- SourceLink -->
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
     <!-- Versioning -->
-    <PackageVersion Include="MinVer" Version="6.0.0" />
+    <PackageVersion Include="MinVer" Version="7.0.0" />
     <!-- Integration tests -->
     <PackageVersion Include="Testcontainers" Version="4.3.0" />
   </ItemGroup>
