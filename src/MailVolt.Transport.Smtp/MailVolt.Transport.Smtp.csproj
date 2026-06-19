@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <PackageId>MailVolt.Transport.Smtp</PackageId>
-    <Version>1.0.0</Version>
+
     <Description>SMTP transport for MailVolt using MailKit</Description>
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>

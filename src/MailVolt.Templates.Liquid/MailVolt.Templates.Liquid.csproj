@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <PackageId>MailVolt.Templates.Liquid</PackageId>
-    <Version>1.0.0</Version>
+
     <Description>Liquid template rendering for MailVolt using Fluid.Core</Description>
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>

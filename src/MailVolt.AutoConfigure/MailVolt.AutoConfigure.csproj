@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <PackageId>MailVolt.AutoConfigure</PackageId>
-    <Version>1.0.0</Version>
+
     <Description>
       Zero-code configuration for MailVolt. Configure transport and templates
       entirely via appsettings.json — one line in Program.cs.

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <PackageId>MailVolt.Transport.Resend</PackageId>
-    <Version>1.0.0</Version>
+
     <Description>Resend transport for MailVolt</Description>
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
