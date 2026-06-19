@@ -31,7 +31,7 @@ jobs:
 
       - name: Test (unit only)
         run: |
-          dotnet test tests/ --no-build --configuration Release \
+          dotnet test --no-build --configuration Release \
             --filter "Category!=Integration" \
             --framework net10.0 \
             --results-directory ./coverage
