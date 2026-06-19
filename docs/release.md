@@ -38,7 +38,7 @@ Releases are fully automated via a single GitHub Actions workflow:
 
    ```bash
    dotnet build --configuration Release /p:TreatWarningsAsErrors=true
-   dotnet test --configuration Release --filter "Category!=Integration" --framework net10.0
+   dotnet test tests/ --configuration Release --filter "Category!=Integration" --framework net10.0
    ```
 
 2. Create and push a version tag:
