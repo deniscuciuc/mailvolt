@@ -1,4 +1,5 @@
 version: 2
+# Dependabot version updates for NuGet packages
 updates:
   - package-ecosystem: "nuget"
     directory: "/"
