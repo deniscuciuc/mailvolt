@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/deniscuciuc/mailvolt/tree/main/docs
+    about: Check the docs before opening an issue
+  - name: Ask a question
+    url: https://github.com/deniscuciuc/mailvolt/discussions
+    about: Use discussions for Q&A
