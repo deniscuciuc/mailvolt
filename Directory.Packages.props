@@ -7,7 +7,7 @@
     <PackageVersion Include="MailKit" Version="4.17.0" />
     <PackageVersion Include="MimeKit" Version="4.17.0" />
     <!-- HTTP Resilience -->
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.7.0" />
     <!-- Azure -->
     <PackageVersion Include="Azure.Communication.Email" Version="1.1.0" />
     <!-- AWS -->
