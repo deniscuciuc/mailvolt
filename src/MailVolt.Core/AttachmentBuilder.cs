@@ -128,12 +128,12 @@ internal sealed class AttachmentBuilder : IAttachmentBuilder
         return _content is null
             ? throw new InvalidOperationException("Content must be set before building the attachment.")
             : new EmailAttachment
-        {
-            FileName = _fileName,
-            Content = _content,
-            ContentType = _contentType ?? "application/octet-stream",
-            ContentId = _contentId,
-        };
+            {
+                FileName = _fileName,
+                Content = _content,
+                ContentType = _contentType ?? "application/octet-stream",
+                ContentId = _contentId,
+            };
     }
 
     private static string DetectContentType(string fileName)

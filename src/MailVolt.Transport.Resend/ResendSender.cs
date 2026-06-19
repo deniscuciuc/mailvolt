@@ -128,7 +128,7 @@ internal sealed class ResendSender : IResendSender
         }
 
         if (email.Attachments.Count <= 0) return message;
-        
+
         var attachments = new List<ResendEmailAttachment>();
         foreach (var attachment in email.Attachments)
         {
