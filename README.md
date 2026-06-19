@@ -1,5 +1,10 @@
 # MailVolt
 
+[![CI](https://github.com/deniscuciuc/mailvolt/actions/workflows/ci.yml/badge.svg)](https://github.com/deniscuciuc/mailvolt/actions/workflows/ci.yml)
+[![NuGet](https://img.shields.io/nuget/v/MailVolt.Core.svg)](https://www.nuget.org/packages/MailVolt.Core/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Codecov](https://codecov.io/gh/deniscuciuc/mailvolt/branch/main/graph/badge.svg)](https://codecov.io/gh/deniscuciuc/mailvolt)
+
 > Modern .NET email library. Drop-in replacement for FluentEmail.
 
 ## Why MailVolt?
