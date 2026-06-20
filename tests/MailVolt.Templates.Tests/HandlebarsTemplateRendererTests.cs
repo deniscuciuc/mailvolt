@@ -131,4 +131,32 @@ public sealed class HandlebarsTemplateRendererTests
         // Assert
         result.Should().Be("Bob — bob@example.com");
     }
+
+    [Fact]
+    public async Task RenderAsync_WithRelativePath_ResolvesFromAppContextBaseDirectory()
+    {
+        // Arrange
+        const string relativePath = "mailvolt-test-template.hbs";
+        var fullPath = Path.Combine(AppContext.BaseDirectory, relativePath);
+
+        try
+        {
+            await File.WriteAllTextAsync(fullPath, "Hello {{ name }}!");
+
+            var model = new { name = "FromBaseDirectory" };
+
+            // Act
+            var result = await _sut.RenderAsync(relativePath, model);
+
+            // Assert
+            result.Should().Be("Hello FromBaseDirectory!");
+        }
+        finally
+        {
+            if (File.Exists(fullPath))
+            {
+                File.Delete(fullPath);
+            }
+        }
+    }
 }

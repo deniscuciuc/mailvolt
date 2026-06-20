@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-preview.2] - 2026-06-20
+
+### Fixed
+
+- `HandlebarsTemplateRenderer` now resolves relative template paths against `AppContext.BaseDirectory` when the file is not found in the current working directory.
+
 ### Added
 
 - Adopted [MinVer](https://github.com/adamralph/minver) for automatic tag-based versioning.
