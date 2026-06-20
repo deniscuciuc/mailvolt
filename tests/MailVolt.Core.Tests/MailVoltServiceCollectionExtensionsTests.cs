@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
 using MailVolt.Core.Options;

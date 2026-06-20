@@ -1,11 +1,11 @@
-using FluentAssertions;
-using FluentAssertions.Execution;
-using FluentAssertions.Primitives;
+using AwesomeAssertions;
+using AwesomeAssertions.Execution;
+using AwesomeAssertions.Primitives;
 
 namespace MailVolt.Testing;
 
 /// <summary>
-/// FluentAssertions extension methods for <see cref="InMemorySender"/>.
+/// AwesomeAssertions extension methods for <see cref="InMemorySender"/>.
 /// </summary>
 public static class InMemorySenderExtensions
 {

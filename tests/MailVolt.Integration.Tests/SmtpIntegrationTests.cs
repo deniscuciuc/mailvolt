@@ -1,7 +1,7 @@
 using System.Net.Http.Json;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
-using FluentAssertions;
+using AwesomeAssertions;
 using MailKit.Security;
 using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;

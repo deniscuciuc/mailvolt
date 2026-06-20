@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-preview.3] - 2026-06-20
+
+### Changed
+
+- Replaced the proprietary `FluentAssertions` dependency with `AwesomeAssertions`, the community-maintained Apache-2.0 fork that keeps the same API and namespaces. This removes the commercial license risk for all MailVolt packages and consumers.
+
 ## [0.1.0-preview.2] - 2026-06-20
 
 ### Fixed

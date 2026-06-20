@@ -17,7 +17,7 @@ updates:
       test-dependencies:
         patterns:
           - "xunit*"
-          - "FluentAssertions"
+          - "AwesomeAssertions"
           - "NSubstitute"
           - "coverlet*"
     labels:
