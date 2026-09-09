@@ -50,7 +50,14 @@ public sealed class SmtpSender(IOptions<SmtpSenderOptions> options) : ISender
         }
     }
 
-    private static MimeMessage BuildMimeMessage(EmailMessage email)
+    /// <summary>
+    /// Maps an <see cref="EmailMessage"/> onto a MimeKit <see cref="MimeMessage"/>.
+    /// </summary>
+    /// <remarks>
+    /// Internal rather than private so the mapping can be unit tested without a live SMTP
+    /// server, matching the seam the SendGrid and Mailgun transports expose.
+    /// </remarks>
+    internal static MimeMessage BuildMimeMessage(EmailMessage email)
     {
         var message = new MimeMessage();
 

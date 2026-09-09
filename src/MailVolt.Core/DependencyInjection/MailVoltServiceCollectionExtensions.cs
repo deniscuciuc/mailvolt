@@ -31,8 +31,7 @@ public static class MailVoltServiceCollectionExtensions
                 services.Configure<MailVoltOptions>(_ => { });
             }
 
-            services.AddTransient<IEmailBuilder, EmailBuilder>();
-            services.AddTransient<IBatchEmailSender, BatchEmailSender>();
+            AddCoreServices(services);
 
             return new MailVoltBuilder(services);
         }
@@ -55,11 +54,23 @@ public static class MailVoltServiceCollectionExtensions
                 options.DefaultFromDisplayName = section[nameof(MailVoltOptions.DefaultFromDisplayName)];
             });
 
-            services.AddTransient<IEmailBuilder, EmailBuilder>();
-            services.AddTransient<IBatchEmailSender, BatchEmailSender>();
+            AddCoreServices(services);
 
             return new MailVoltBuilder(services);
         }
+    }
+
+    private static void AddCoreServices(IServiceCollection services)
+    {
+        // Several transports take an ILogger<T>. Registering logging here keeps the
+        // MailVolt registration self-sufficient: without it, resolving those senders threw
+        // "Unable to resolve service for type ILogger<...>" in any host that had not
+        // already called AddLogging. It is idempotent, and a host configuring providers
+        // afterwards still wins.
+        services.AddLogging();
+
+        services.AddTransient<IEmailBuilder, EmailBuilder>();
+        services.AddTransient<IBatchEmailSender, BatchEmailSender>();
     }
 }
 

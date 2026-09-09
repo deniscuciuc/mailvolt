@@ -62,6 +62,18 @@ public sealed class AwsSesSender : ISender, IDisposable
         EmailMessage email,
         CancellationToken ct)
     {
+        var request = BuildSimpleRequest(email, _options.ConfigurationSetName);
+
+        var response = await client.SendEmailAsync(request, ct).ConfigureAwait(false);
+        return EmailResult.Success(response.MessageId);
+    }
+
+    /// <summary>
+    /// Maps an <see cref="EmailMessage"/> with no attachments onto an SES structured request.
+    /// </summary>
+    /// <remarks>Internal so the mapping can be unit tested without calling AWS.</remarks>
+    internal static SendEmailRequest BuildSimpleRequest(EmailMessage email, string? configurationSetName)
+    {
         var request = new SendEmailRequest
         {
             FromEmailAddress = email.From?.ToString(),
@@ -83,11 +95,17 @@ public sealed class AwsSesSender : ISender, IDisposable
                     }
                 }
             },
-            ConfigurationSetName = _options.ConfigurationSetName
+            ConfigurationSetName = configurationSetName
         };
 
-        var response = await client.SendEmailAsync(request, ct).ConfigureAwait(false);
-        return EmailResult.Success(response.MessageId);
+        // SES's structured request has no Reply-To field, so it goes on the request instead
+        // of being dropped as it previously was.
+        if (email.ReplyTo is not null)
+        {
+            request.ReplyToAddresses = [email.ReplyTo.ToString()];
+        }
+
+        return request;
     }
 
     private async Task<EmailResult> SendWithAttachmentsAsync(
@@ -95,38 +113,7 @@ public sealed class AwsSesSender : ISender, IDisposable
         EmailMessage email,
         CancellationToken ct)
     {
-        using var mimeMessage = new MimeMessage();
-
-        if (email.From is not null)
-            mimeMessage.From.Add(new MailboxAddress(email.From.DisplayName, email.From.Address));
-
-        foreach (var to in email.To)
-            mimeMessage.To.Add(new MailboxAddress(to.DisplayName, to.Address));
-        foreach (var cc in email.Cc)
-            mimeMessage.Cc.Add(new MailboxAddress(cc.DisplayName, cc.Address));
-        foreach (var bcc in email.Bcc)
-            mimeMessage.Bcc.Add(new MailboxAddress(bcc.DisplayName, bcc.Address));
-
-        mimeMessage.Subject = email.Subject;
-
-        foreach (var header in email.Headers)
-            mimeMessage.Headers.Add(header.Key, header.Value);
-
-        var bodyBuilder = new BodyBuilder();
-
-        if (email.TextBody is not null)
-            bodyBuilder.TextBody = email.TextBody;
-
-        if (email.HtmlBody is not null)
-            bodyBuilder.HtmlBody = email.HtmlBody;
-
-        foreach (var attachment in email.Attachments)
-        {
-            bodyBuilder.Attachments.Add(attachment.FileName, attachment.Content.ToArray(),
-                ContentType.Parse(attachment.ContentType));
-        }
-
-        mimeMessage.Body = bodyBuilder.ToMessageBody();
+        using var mimeMessage = BuildMimeMessage(email);
 
         var memoryStream = new MemoryStream();
         await using var streamScope = memoryStream.ConfigureAwait(false);
@@ -151,5 +138,71 @@ public sealed class AwsSesSender : ISender, IDisposable
 
         var response = await client.SendEmailAsync(request, ct).ConfigureAwait(false);
         return EmailResult.Success(response.MessageId);
+    }
+
+    /// <summary>
+    /// Builds the raw MIME message SES sends when the email has attachments.
+    /// </summary>
+    /// <remarks>Internal so the mapping can be unit tested without calling AWS.</remarks>
+    internal static MimeMessage BuildMimeMessage(EmailMessage email)
+    {
+        var mimeMessage = new MimeMessage();
+
+        if (email.From is not null)
+            mimeMessage.From.Add(new MailboxAddress(email.From.DisplayName, email.From.Address));
+
+        foreach (var to in email.To)
+            mimeMessage.To.Add(new MailboxAddress(to.DisplayName, to.Address));
+        foreach (var cc in email.Cc)
+            mimeMessage.Cc.Add(new MailboxAddress(cc.DisplayName, cc.Address));
+        foreach (var bcc in email.Bcc)
+            mimeMessage.Bcc.Add(new MailboxAddress(bcc.DisplayName, bcc.Address));
+
+        // Previously dropped on this path, so a Reply-To was silently lost whenever the
+        // email had an attachment.
+        if (email.ReplyTo is not null)
+            mimeMessage.ReplyTo.Add(new MailboxAddress(email.ReplyTo.DisplayName, email.ReplyTo.Address));
+
+        mimeMessage.Subject = email.Subject;
+
+        var bodyBuilder = new BodyBuilder();
+
+        if (email.TextBody is not null)
+            bodyBuilder.TextBody = email.TextBody;
+
+        if (email.HtmlBody is not null)
+            bodyBuilder.HtmlBody = email.HtmlBody;
+
+        foreach (var attachment in email.Attachments)
+        {
+            // Inline images were previously added as ordinary attachments, so a cid:
+            // reference in the HTML never resolved and the image showed up as a download.
+            if (attachment.IsInline)
+            {
+                var linked = bodyBuilder.LinkedResources.Add(attachment.FileName,
+                    attachment.Content.ToArray(), ContentType.Parse(attachment.ContentType));
+                linked.ContentId = attachment.ContentId;
+            }
+            else
+            {
+                bodyBuilder.Attachments.Add(attachment.FileName, attachment.Content.ToArray(),
+                    ContentType.Parse(attachment.ContentType));
+            }
+        }
+
+        mimeMessage.Body = bodyBuilder.ToMessageBody();
+
+        mimeMessage.Headers["X-Priority"] = email.Priority switch
+        {
+            EmailPriority.Low => "5",
+            EmailPriority.Normal => "3",
+            EmailPriority.High => "1",
+            _ => "3"
+        };
+
+        foreach (var header in email.Headers)
+            mimeMessage.Headers[header.Key] = header.Value;
+
+        return mimeMessage;
     }
 }
