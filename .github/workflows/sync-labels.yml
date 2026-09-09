@@ -3,18 +3,53 @@ name: Sync labels
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-    paths:
-      - '.github/labels.yml'
+    branches: [main]
+    paths: ['.github/labels.yml']
+
+permissions:
+  contents: read
+  issues: write
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: micnncim/action-label-syncer@v1
+      - uses: actions/checkout@v5
+
+      # Previously used micnncim/action-label-syncer@v1, an unmaintained third-party action
+      # running unpinned with issues: write. gh is already on the runner.
+      - name: Sync labels from .github/labels.yml
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' > labels.json
+          import json, sys, re
+          # labels.yml is a flat list of {name, color, description} — parsed without a YAML
+          # dependency so the job needs nothing installed.
+          entries, current = [], None
+          for line in open('.github/labels.yml'):
+              line = line.rstrip('\n')
+              if not line.strip() or line.lstrip().startswith('#'):
+                  continue
+              m = re.match(r'\s*-\s*name:\s*(.+)', line)
+              if m:
+                  current = {'name': m.group(1).strip().strip('"\'')}
+                  entries.append(current)
+                  continue
+              m = re.match(r'\s+(\w+):\s*(.*)', line)
+              if m and current is not None:
+                  current[m.group(1)] = m.group(2).strip().strip('"\'')
+          json.dump(entries, sys.stdout)
+          PY
+          jq -c '.[]' labels.json | while read -r label; do
+            name=$(jq -r '.name' <<<"$label")
+            color=$(jq -r '.color // "ededed"' <<<"$label")
+            description=$(jq -r '.description // ""' <<<"$label")
+            if gh label list --limit 200 --json name --jq '.[].name' | grep -Fxq "$name"; then
+              gh label edit "$name" --color "$color" --description "$description"
+            else
+              gh label create "$name" --color "$color" --description "$description"
+            fi
+          done

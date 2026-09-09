@@ -6,44 +6,118 @@ on:
   pull_request:
     branches: [main]
 
+# A push and a pull_request event fire for the same commit on a PR branch, and a new push
+# supersedes the previous run. Without this every PR ran CI twice and nothing was cancelled.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
 jobs:
   format:
+    name: Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.x'
-      - name: Restore
-        run: dotnet restore
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-ubuntu-latest-${{ hashFiles('Directory.Packages.props') }}
+          restore-keys: nuget-ubuntu-latest-
+      - run: dotnet restore
       - name: Check formatting
         run: dotnet format --verify-no-changes --no-restore
 
   build-and-test:
-    runs-on: ubuntu-latest
+    name: Build & test (${{ matrix.os }})
     strategy:
+      fail-fast: false
       matrix:
-        dotnet: ['10.x', '9.x', '8.x']
+        # Windows is not redundant: relative template-path resolution, Razor's
+        # Directory.GetCurrentDirectory default and MIME handling are exactly the things
+        # that behave differently there.
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v5
         with:
+          # MinVer needs the full history to compute a version.
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          # net8.0 and net9.0 runtimes are needed to *run* those test legs; the 10 SDK
+          # builds all three target frameworks.
           dotnet-version: |
             8.x
             9.x
             10.x
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ matrix.os }}-${{ hashFiles('Directory.Packages.props') }}
+          restore-keys: nuget-${{ matrix.os }}-
+
       - name: Restore
         run: dotnet restore
+
       - name: Build
         run: dotnet build --no-restore --configuration Release /p:TreatWarningsAsErrors=true
-      - name: Test (unit only)
-        run: |
-          dotnet test --no-build --configuration Release \
-            --filter "Category!=Integration" \
-            --framework net${{ matrix.dotnet == '10.x' && '10.0' || matrix.dotnet == '9.x' && '9.0' || '8.0' }} \
-            --collect:"XPlat Code Coverage" \
-            --results-directory ./coverage
-      - uses: codecov/codecov-action@v4
-        if: matrix.dotnet == '10.x'
+
+      - name: Test (unit, all target frameworks)
+        run: >-
+          dotnet test --no-build --configuration Release
+          --filter "Category!=Integration"
+          --collect:"XPlat Code Coverage"
+          --results-directory ./coverage
+
+      - uses: codecov/codecov-action@v5
+        if: matrix.os == 'ubuntu-latest'
         with:
           directory: ./coverage
+          # Tokenless uploads are unreliable even for public repositories.
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.x'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-ubuntu-latest-${{ hashFiles('Directory.Packages.props') }}
+          restore-keys: nuget-ubuntu-latest-
+      - name: Test (integration, needs Docker)
+        run: >-
+          dotnet test tests/MailVolt.Integration.Tests
+          --configuration Release --framework net10.0
+          --filter "Category=Integration"
+
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
