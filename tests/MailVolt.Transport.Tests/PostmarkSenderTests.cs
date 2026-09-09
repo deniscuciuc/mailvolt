@@ -250,18 +250,19 @@ public sealed class PostmarkSenderTests
     }
 
     [Fact]
-    public async Task SendAsync_returns_failure_when_cancelled()
+    public async Task SendAsync_propagates_cancellation()
     {
+        // Previously this returned EmailResult.Failure("...cancelled"), unlike every other
+        // transport. See CancellationSemanticsTests for the cross-transport contract.
         var client = Substitute.For<IPostmarkClient>();
         var sender = new PostmarkSender(client, Helpers.OptionsOf(Options), CreateLogger());
         var email = Helpers.CreateTestEmail();
-        var cts = new CancellationTokenSource();
-        cts.Cancel();
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
 
-        var result = await sender.SendAsync(email, cts.Token);
+        var act = () => sender.SendAsync(email, cts.Token);
 
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Contain("cancelled");
+        await act.Should().ThrowAsync<OperationCanceledException>();
         await client.DidNotReceive().SendMessageAsync(Arg.Any<PostmarkMessage>());
     }
 }

@@ -68,7 +68,7 @@ internal sealed partial class SendGridSender : ISendGridSender
             _logger.LogWarning("Email sending via SendGrid was cancelled.");
             throw;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogSendGridException(ex);
             return EmailResult.Failure(ex.Message, ex);

@@ -39,7 +39,10 @@ public sealed class SmtpSender(IOptions<SmtpSenderOptions> options) : ISender
 
             return EmailResult.Success(response);
         }
-        catch (Exception ex)
+        // Cancellation propagates rather than becoming a send failure: every MailVolt
+        // transport behaves the same way, so swapping providers does not change how a
+        // cancelled send is observed.
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return EmailResult.Failure($"SMTP send failed: {ex.Message}", ex);
         }

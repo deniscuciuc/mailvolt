@@ -12,29 +12,46 @@ namespace MailVolt.Transport.AwsSes;
 /// <summary>
 /// Sends email messages via the AWS SES v2 API.
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="AwsSesSender"/> class.
-/// </remarks>
-/// <param name="options">The AWS SES options.</param>
-public sealed class AwsSesSender(IOptions<AwsSesSenderOptions> options) : ISender
+public sealed class AwsSesSender : ISender, IDisposable
 {
-    private readonly AwsSesSenderOptions _options = options.Value;
+    private readonly AwsSesSenderOptions _options;
+
+    // Built once rather than per send: the SES client owns an HTTP connection pool, so
+    // constructing one per email discarded every pooled connection.
+    private readonly AmazonSimpleEmailServiceV2Client _client;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AwsSesSender"/> class.
+    /// </summary>
+    /// <param name="options">The AWS SES options.</param>
+    public AwsSesSender(IOptions<AwsSesSenderOptions> options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        _options = options.Value;
+        _client = new AmazonSimpleEmailServiceV2Client(
+            new BasicAWSCredentials(_options.AccessKeyId, _options.SecretAccessKey),
+            RegionEndpoint.GetBySystemName(_options.Region));
+    }
+
+    /// <inheritdoc />
+    public void Dispose() => _client.Dispose();
 
     /// <inheritdoc />
     public async Task<EmailResult> SendAsync(EmailMessage email, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(email);
+
         try
         {
-            var credentials = new BasicAWSCredentials(_options.AccessKeyId, _options.SecretAccessKey);
-            var regionEndpoint = RegionEndpoint.GetBySystemName(_options.Region);
-
-            using var client = new AmazonSimpleEmailServiceV2Client(credentials, regionEndpoint);
-
             return email.Attachments.Count > 0
-                ? await SendWithAttachmentsAsync(client, email, cancellationToken)
-                : await SendSimpleAsync(client, email, cancellationToken);
+                ? await SendWithAttachmentsAsync(_client, email, cancellationToken).ConfigureAwait(false)
+                : await SendSimpleAsync(_client, email, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        // Cancellation propagates rather than becoming a send failure: every MailVolt
+        // transport behaves the same way, so swapping providers does not change how a
+        // cancelled send is observed.
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return EmailResult.Failure(ex.Message, ex);
         }

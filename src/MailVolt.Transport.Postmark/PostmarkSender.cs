@@ -73,9 +73,9 @@ internal sealed class PostmarkSender : IPostmarkSender
         catch (OperationCanceledException)
         {
             _logger.LogWarning("Postmark send operation was cancelled");
-            return EmailResult.Failure("The send operation was cancelled");
+            throw;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Failed to send email via Postmark");
             return EmailResult.Failure($"Failed to send email via Postmark: {ex.Message}", ex);

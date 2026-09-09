@@ -80,6 +80,10 @@ public static class SendGridTransportExtensions
             options.Host = senderOptions.BaseUrl.TrimEnd('/');
         });
 
+        // AddSendGrid registers its client under this name; attaching the handler here is
+        // what makes the resilience the docs promise apply to SendGrid too.
+        services.AddHttpClient("SendGrid").AddStandardResilienceHandler();
+
         // Register the sender as both ISendGridSender and ISender
         services.AddTransient<ISendGridSender, SendGridSender>();
         services.AddTransient<ISender>(serviceProvider => serviceProvider.GetRequiredService<ISendGridSender>());

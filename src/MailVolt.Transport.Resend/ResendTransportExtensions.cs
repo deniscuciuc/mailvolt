@@ -78,7 +78,11 @@ public static class ResendTransportExtensions
     {
         services.AddTransient<IConfigureOptions<global::Resend.ResendClientOptions>, ResendClientOptionsConfigure>();
 
-        services.AddHttpClient<global::Resend.ResendClient>();
+        // Retries, a circuit breaker and a timeout, matching the Mailgun transport so the
+        // documented resilience behaviour is actually true for every transport that owns
+        // its own HttpClient.
+        services.AddHttpClient<global::Resend.ResendClient>()
+            .AddStandardResilienceHandler();
         services.AddTransient<global::Resend.IResend, global::Resend.ResendClient>();
 
         // Register the sender as both IResendSender and ISender

@@ -10,24 +10,47 @@ namespace MailVolt.Templates.Handlebars;
 /// </summary>
 public sealed class HandlebarsTemplateRenderer : ITemplateRenderer
 {
-    private static readonly ConcurrentDictionary<string, HandlebarsTemplate<object, string>> Cache = new();
+    /// <summary>
+    /// Upper bound on distinct cached templates. The cache key is the file path or, for
+    /// inline templates, the source itself — so a caller passing per-tenant or
+    /// user-generated source would otherwise grow this without limit.
+    /// </summary>
+    private const int MaxCachedTemplates = 512;
+
+    private static readonly ConcurrentDictionary<string, HandlebarsTemplate<object, string>> Cache =
+        new(StringComparer.Ordinal);
 
     /// <inheritdoc />
     public Task<string> RenderAsync<TModel>(
-        string templateKey,
+        string template,
         TModel model,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(templateKey);
+        ArgumentNullException.ThrowIfNull(template);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        var compiled = Cache.GetOrAdd(templateKey, key =>
+        var compiled = GetOrCompile(template);
+
+        return Task.FromResult(compiled(model!));
+    }
+
+    private static HandlebarsTemplate<object, string> GetOrCompile(string key)
+    {
+        if (Cache.TryGetValue(key, out var cached))
         {
-            var source = ResolveTemplateSource(key);
-            return HandlebarsDotNet.Handlebars.Compile(source);
-        });
+            return cached;
+        }
 
-        var result = compiled(model!);
-        return Task.FromResult(result);
+        var compiled = HandlebarsDotNet.Handlebars.Compile(ResolveTemplateSource(key));
+
+        // Stop caching rather than evict: an unbounded cache is a slow leak, and past the
+        // cap the far likelier explanation is dynamic template source.
+        if (Cache.Count < MaxCachedTemplates)
+        {
+            Cache.TryAdd(key, compiled);
+        }
+
+        return compiled;
     }
 
     private static string ResolveTemplateSource(string key)
