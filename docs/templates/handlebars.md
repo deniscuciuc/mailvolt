@@ -72,20 +72,25 @@ Access the current index with `@index`:
 Register custom helpers during configuration:
 
 ```csharp
-.UseHandlebarsTemplates(options =>
-{
-    options.RegisterHelper("formatDate", (writer, context, parameters) =>
-    {
-        var date = DateTime.Parse(parameters[0].ToString()!);
-        writer.WriteSafeString(date.ToString("MMMM dd, yyyy"));
-    });
+using HandlebarsDotNet; // for WriteSafeString
 
-    options.RegisterHelper("uppercase", (writer, context, parameters) =>
+builder.Services.AddMailVolt()
+    .UseSmtpTransport(builder.Configuration)
+    .UseHandlebarsTemplates(options =>
     {
-        writer.WriteSafeString(parameters[0].ToString()!.ToUpperInvariant());
+        options.RegisterHelper("formatDate", (writer, _, parameters) =>
+        {
+            var date = DateTime.Parse(parameters[0].ToString()!, CultureInfo.InvariantCulture);
+            writer.WriteSafeString(date.ToString("MMMM dd, yyyy", CultureInfo.InvariantCulture));
+        });
+
+        options.RegisterHelper("uppercase", (writer, _, parameters) =>
+            writer.WriteSafeString(parameters[0].ToString()!.ToUpperInvariant()));
     });
-})
 ```
+
+Helpers are registered on a Handlebars environment private to this renderer, so they
+cannot leak into another library using Handlebars in the same process.
 
 Usage in templates:
 
@@ -114,11 +119,13 @@ Main template:
 Register partials at startup:
 
 ```csharp
-.UseHandlebarsTemplates(options =>
-{
-    options.RegisterPartial("footer", "<p>&copy; {{year}} Example Corp</p>");
-})
+builder.Services.AddMailVolt()
+    .UseSmtpTransport(builder.Configuration)
+    .UseHandlebarsTemplates(options =>
+        options.RegisterPartial("footer", "<p>&copy; {{year}} Example Corp</p>"));
 ```
+
+`RegisterHelper` and `RegisterPartial` both return the options object, so they chain.
 
 ## Using Templates
 

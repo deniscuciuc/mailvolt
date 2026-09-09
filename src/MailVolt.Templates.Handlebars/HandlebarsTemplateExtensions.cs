@@ -19,11 +19,23 @@ public static class HandlebarsTemplateExtensions
     /// </summary>
     /// <param name="builder">The <see cref="MailVoltBuilder"/> to add services to.</param>
     /// <returns>The <see cref="MailVoltBuilder"/> for chaining.</returns>
-    public static MailVoltBuilder UseHandlebarsTemplates(this MailVoltBuilder builder)
+    /// <param name="configure">
+    /// Optional configuration for custom helpers and partials.
+    /// </param>
+    public static MailVoltBuilder UseHandlebarsTemplates(
+        this MailVoltBuilder builder,
+        Action<HandlebarsTemplateOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.Services.AddTransient<ITemplateRenderer, HandlebarsTemplateRenderer>();
+        if (configure is not null)
+        {
+            builder.Services.Configure(configure);
+        }
+
+        // Singleton so the compiled-template cache and the registered helpers are shared
+        // rather than rebuilt on every resolve.
+        builder.Services.AddSingleton<ITemplateRenderer, HandlebarsTemplateRenderer>();
         return builder;
     }
 }

@@ -1,12 +1,12 @@
 using System.Collections.Concurrent;
 using HandlebarsDotNet;
 using MailVolt.Core.Interfaces;
+using Microsoft.Extensions.Options;
 
 namespace MailVolt.Templates.Handlebars;
 
 /// <summary>
-/// Renders Handlebars templates using the Handlebars.Net library.
-/// Caches compiled templates in a concurrent dictionary.
+/// Renders Handlebars templates using the Handlebars.Net library, caching compiled templates.
 /// </summary>
 public sealed class HandlebarsTemplateRenderer : ITemplateRenderer
 {
@@ -17,8 +17,37 @@ public sealed class HandlebarsTemplateRenderer : ITemplateRenderer
     /// </summary>
     private const int MaxCachedTemplates = 512;
 
-    private static readonly ConcurrentDictionary<string, HandlebarsTemplate<object, string>> Cache =
+    private readonly ConcurrentDictionary<string, HandlebarsTemplate<object, string>> _cache =
         new(StringComparer.Ordinal);
+
+    private readonly IHandlebars _handlebars;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HandlebarsTemplateRenderer"/> class.
+    /// </summary>
+    /// <param name="options">Helpers and partials to register with the engine.</param>
+    public HandlebarsTemplateRenderer(IOptions<HandlebarsTemplateOptions>? options = null)
+    {
+        // An isolated environment rather than the global Handlebars instance, so registering
+        // a helper here cannot leak into an unrelated consumer in the same process.
+        _handlebars = HandlebarsDotNet.Handlebars.Create();
+
+        var configuration = options?.Value;
+        if (configuration is null)
+        {
+            return;
+        }
+
+        foreach (var (name, helper) in configuration.Helpers)
+        {
+            _handlebars.RegisterHelper(name, helper);
+        }
+
+        foreach (var (name, template) in configuration.Partials)
+        {
+            _handlebars.RegisterTemplate(name, template);
+        }
+    }
 
     /// <inheritdoc />
     public Task<string> RenderAsync<TModel>(
@@ -34,20 +63,20 @@ public sealed class HandlebarsTemplateRenderer : ITemplateRenderer
         return Task.FromResult(compiled(model!));
     }
 
-    private static HandlebarsTemplate<object, string> GetOrCompile(string key)
+    private HandlebarsTemplate<object, string> GetOrCompile(string key)
     {
-        if (Cache.TryGetValue(key, out var cached))
+        if (_cache.TryGetValue(key, out var cached))
         {
             return cached;
         }
 
-        var compiled = HandlebarsDotNet.Handlebars.Compile(ResolveTemplateSource(key));
+        var compiled = _handlebars.Compile(ResolveTemplateSource(key));
 
         // Stop caching rather than evict: an unbounded cache is a slow leak, and past the
         // cap the far likelier explanation is dynamic template source.
-        if (Cache.Count < MaxCachedTemplates)
+        if (_cache.Count < MaxCachedTemplates)
         {
-            Cache.TryAdd(key, compiled);
+            _cache.TryAdd(key, compiled);
         }
 
         return compiled;
