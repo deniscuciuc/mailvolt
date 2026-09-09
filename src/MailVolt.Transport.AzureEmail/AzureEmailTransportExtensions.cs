@@ -1,10 +1,12 @@
-using MailVolt.Core.DependencyInjection;
+using MailVolt.Transport.AzureEmail;
 using MailVolt.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
+// All MailVolt registration extensions live in MailVolt.Core.DependencyInjection, so one
+// using covers AddMailVolt and every transport and template engine.
 // ReSharper disable once CheckNamespace
-namespace MailVolt.Transport.AzureEmail.DependencyInjection;
+namespace MailVolt.Core.DependencyInjection;
 
 /// <summary>
 /// Extension methods for registering the Azure Email Communication Services transport.
@@ -18,7 +20,7 @@ public static class AzureEmailTransportExtensions
     /// <param name="builder">The <see cref="MailVoltBuilder"/> from <c>AddMailVolt</c>.</param>
     /// <param name="configuration">The configuration root. The <c>"MailVolt:Azure"</c> section will be bound.</param>
     /// <returns>The <see cref="MailVoltBuilder"/> for chaining.</returns>
-    public static MailVoltBuilder AddAzureEmailSender(
+    public static MailVoltBuilder UseAzureEmailTransport(
         this MailVoltBuilder builder,
         IConfiguration configuration)
     {
@@ -40,7 +42,7 @@ public static class AzureEmailTransportExtensions
     /// <param name="builder">The <see cref="MailVoltBuilder"/> from <c>AddMailVolt</c>.</param>
     /// <param name="configureOptions">A delegate to configure <see cref="AzureEmailSenderOptions"/>.</param>
     /// <returns>The <see cref="MailVoltBuilder"/> for chaining.</returns>
-    public static MailVoltBuilder AddAzureEmailSender(
+    public static MailVoltBuilder UseAzureEmailTransport(
         this MailVoltBuilder builder,
         Action<AzureEmailSenderOptions> configureOptions)
     {

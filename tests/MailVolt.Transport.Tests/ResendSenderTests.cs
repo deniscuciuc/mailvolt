@@ -2,7 +2,6 @@ using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
 using MailVolt.Core.Models;
 using MailVolt.Transport.Resend;
-using MailVolt.Transport.Resend.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -54,7 +53,7 @@ public sealed class ResendSenderTests
         services.AddLogging();
         var builder = new MailVoltBuilder(services);
 
-        builder.UseResend(opts =>
+        builder.UseResendTransport(opts =>
         {
             opts.ApiKey = "resend-key";
         });
@@ -82,7 +81,8 @@ public sealed class ResendSenderTests
             })
             .Build();
 
-        builder.UseResend(config.GetSection("MailVolt:Resend"));
+        // Takes the configuration root, matching every other transport.
+        builder.UseResendTransport(config);
 
         var provider = services.BuildServiceProvider();
         var sender = provider.GetService<ISender>();

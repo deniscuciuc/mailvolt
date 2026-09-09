@@ -14,7 +14,7 @@ dotnet add package MailVolt.Transport.SendGrid
 using MailVolt.Core.DependencyInjection;
 
 builder.Services.AddMailVolt()
-    .AddSendGridSender(options =>
+    .UseSendGridTransport(options =>
     {
         options.ApiKey = "SG.your-api-key";
     });

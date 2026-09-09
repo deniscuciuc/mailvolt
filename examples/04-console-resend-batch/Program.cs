@@ -1,8 +1,6 @@
 using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
 using MailVolt.Core.Models;
-using MailVolt.Templates.Liquid.DependencyInjection;
-using MailVolt.Transport.Resend.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -21,7 +19,7 @@ var host = Host.CreateDefaultBuilder(args)
             opts.DefaultFromAddress = defaultFrom);
 
         if (dryRun) mv.UseInMemoryTransport();
-        else mv.UseResend(ctx.Configuration.GetSection("MailVolt:Resend"));
+        else mv.UseResendTransport(ctx.Configuration);
 
         mv.UseLiquidTemplates();
     })

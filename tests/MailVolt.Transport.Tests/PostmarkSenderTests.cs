@@ -62,7 +62,7 @@ public sealed class PostmarkSenderTests
         services.AddLogging();
         var builder = new MailVoltBuilder(services);
 
-        builder.AddPostmarkSender(opts =>
+        builder.UsePostmarkTransport(opts =>
         {
             opts.ApiKey = "pm-key";
         });
@@ -91,7 +91,7 @@ public sealed class PostmarkSenderTests
             })
             .Build();
 
-        builder.AddPostmarkSender(config);
+        builder.UsePostmarkTransport(config);
 
         var provider = services.BuildServiceProvider();
         var sender = provider.GetService<ISender>();

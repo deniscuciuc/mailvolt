@@ -1,7 +1,6 @@
 using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
 using MailVolt.Transport.AzureEmail;
-using MailVolt.Transport.AzureEmail.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -21,7 +20,7 @@ public sealed class AzureEmailSenderTests
         var services = new ServiceCollection();
         var builder = new MailVoltBuilder(services);
 
-        builder.AddAzureEmailSender(opts =>
+        builder.UseAzureEmailTransport(opts =>
         {
             opts.ConnectionString = "endpoint=https://test.communication.azure.com/;accesskey=testkey==";
         });
@@ -48,7 +47,7 @@ public sealed class AzureEmailSenderTests
             })
             .Build();
 
-        builder.AddAzureEmailSender(config);
+        builder.UseAzureEmailTransport(config);
 
         var provider = services.BuildServiceProvider();
         var sender = provider.GetService<ISender>();

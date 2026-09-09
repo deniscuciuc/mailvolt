@@ -14,7 +14,7 @@ dotnet add package MailVolt.Transport.Resend
 using MailVolt.Core.DependencyInjection;
 
 builder.Services.AddMailVolt()
-    .UseResend(options =>
+    .UseResendTransport(options =>
     {
         options.ApiKey = "re_your-api-key";
     });
@@ -24,8 +24,8 @@ Or bind from configuration:
 
 ```csharp
 builder.Services.AddMailVolt()
-    .UseResend(
-        builder.Configuration.GetSection("MailVolt:Resend"));
+    .UseResendTransport(
+        builder.Configuration);
 ```
 
 ## Options
@@ -39,7 +39,7 @@ builder.Services.AddMailVolt()
 
 ```csharp
 builder.Services.AddMailVolt()
-    .UseResend(options =>
+    .UseResendTransport(options =>
     {
         options.ApiKey = Environment.GetEnvironmentVariable("RESEND_API_KEY")!;
     });

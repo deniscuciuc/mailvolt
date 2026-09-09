@@ -1,8 +1,6 @@
 using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
 using MailVolt.Core.Models;
-using MailVolt.Templates.Razor.DependencyInjection;
-using MailVolt.Transport.Smtp.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

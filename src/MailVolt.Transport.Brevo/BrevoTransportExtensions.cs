@@ -1,10 +1,12 @@
+using MailVolt.Transport.Brevo;
 using MailVolt.Core.Interfaces;
-using MailVolt.Core.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
+// All MailVolt registration extensions live in MailVolt.Core.DependencyInjection, so one
+// using covers AddMailVolt and every transport and template engine.
 // ReSharper disable once CheckNamespace
-namespace MailVolt.Transport.Brevo.DependencyInjection;
+namespace MailVolt.Core.DependencyInjection;
 
 /// <summary>
 /// Extension methods for registering the Brevo email transport.
@@ -20,7 +22,7 @@ public static class BrevoTransportExtensions
         /// </summary>
         /// <param name="configuration">The configuration root. The <c>"MailVolt:Brevo"</c> section will be bound.</param>
         /// <returns>The <see cref="MailVoltBuilder"/> for chaining.</returns>
-        public MailVoltBuilder AddBrevoSender(IConfiguration configuration)
+        public MailVoltBuilder UseBrevoTransport(IConfiguration configuration)
         {
             ArgumentNullException.ThrowIfNull(builder);
             ArgumentNullException.ThrowIfNull(configuration);
@@ -39,7 +41,7 @@ public static class BrevoTransportExtensions
         /// </summary>
         /// <param name="configureOptions">A delegate to configure <see cref="BrevoSenderOptions"/>.</param>
         /// <returns>The <see cref="MailVoltBuilder"/> for chaining.</returns>
-        public MailVoltBuilder AddBrevoSender(Action<BrevoSenderOptions> configureOptions)
+        public MailVoltBuilder UseBrevoTransport(Action<BrevoSenderOptions> configureOptions)
         {
             ArgumentNullException.ThrowIfNull(builder);
             ArgumentNullException.ThrowIfNull(configureOptions);

@@ -1,12 +1,14 @@
-using MailVolt.Core.DependencyInjection;
+using MailVolt.Transport.SendGrid;
 using MailVolt.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SendGrid.Extensions.DependencyInjection;
 
+// All MailVolt registration extensions live in MailVolt.Core.DependencyInjection, so one
+// using covers AddMailVolt and every transport and template engine.
 // ReSharper disable once CheckNamespace
-namespace MailVolt.Transport.SendGrid.DependencyInjection;
+namespace MailVolt.Core.DependencyInjection;
 
 /// <summary>
 /// Extension methods for registering the SendGrid transport with the MailVolt builder.
@@ -21,7 +23,7 @@ public static class SendGridTransportExtensions
         /// </summary>
         /// <param name="configureOptions">An optional delegate to configure <see cref="SendGridSenderOptions"/>.</param>
         /// <returns>The <see cref="MailVoltBuilder"/> for chaining.</returns>
-        public MailVoltBuilder AddSendGridSender( // ReSharper disable once MethodOverloadWithOptionalParameter
+        public MailVoltBuilder UseSendGridTransport( // ReSharper disable once MethodOverloadWithOptionalParameter
             Action<SendGridSenderOptions>? configureOptions = null)
         {
             ArgumentNullException.ThrowIfNull(builder);
@@ -45,7 +47,7 @@ public static class SendGridTransportExtensions
         /// </summary>
         /// <param name="configuration">The configuration root.</param>
         /// <returns>The <see cref="MailVoltBuilder"/> for chaining.</returns>
-        public MailVoltBuilder AddSendGridSender(IConfiguration configuration)
+        public MailVoltBuilder UseSendGridTransport(IConfiguration configuration)
         {
             ArgumentNullException.ThrowIfNull(builder);
             ArgumentNullException.ThrowIfNull(configuration);
@@ -62,7 +64,7 @@ public static class SendGridTransportExtensions
         /// Useful when <see cref="SendGridSenderOptions"/> are configured elsewhere.
         /// </summary>
         /// <returns>The <see cref="MailVoltBuilder"/> for chaining.</returns>
-        public MailVoltBuilder AddSendGridSender()
+        public MailVoltBuilder UseSendGridTransport()
         {
             ArgumentNullException.ThrowIfNull(builder);
 

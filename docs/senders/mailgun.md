@@ -26,7 +26,7 @@ Or bind from configuration:
 ```csharp
 builder.Services.AddMailVolt()
     .UseMailgunTransport(
-        builder.Configuration.GetSection("MailVolt:Mailgun"));
+        builder.Configuration);
 ```
 
 ## Options

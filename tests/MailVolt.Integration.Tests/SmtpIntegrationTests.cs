@@ -3,7 +3,6 @@ using MailKit.Security;
 using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
 using MailVolt.Core.Models;
-using MailVolt.Transport.Smtp.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 

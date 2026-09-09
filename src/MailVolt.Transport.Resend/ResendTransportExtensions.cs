@@ -1,11 +1,13 @@
-using MailVolt.Core.DependencyInjection;
+using MailVolt.Transport.Resend;
 using MailVolt.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
+// All MailVolt registration extensions live in MailVolt.Core.DependencyInjection, so one
+// using covers AddMailVolt and every transport and template engine.
 // ReSharper disable once CheckNamespace
-namespace MailVolt.Transport.Resend.DependencyInjection;
+namespace MailVolt.Core.DependencyInjection;
 
 /// <summary>
 /// Extension methods for registering the Resend transport with the MailVolt pipeline.
@@ -21,7 +23,7 @@ public static class ResendTransportExtensions
         /// <c>"MailVolt:Resend"</c> configuration section.
         /// </summary>
         /// <returns>The same builder instance for chaining.</returns>
-        public MailVoltBuilder UseResend()
+        public MailVoltBuilder UseResendTransport()
         {
             ArgumentNullException.ThrowIfNull(builder);
 
@@ -35,18 +37,21 @@ public static class ResendTransportExtensions
 
         /// <summary>
         /// Registers the Resend email sender (<see cref="IResendSender"/> / <see cref="ISender"/>)
-        /// as the active transport, binding <see cref="ResendSenderOptions"/> from the specified
-        /// configuration section.
+        /// as the active transport, binding <see cref="ResendSenderOptions"/> from the
+        /// <c>"MailVolt:Resend"</c> section of the supplied configuration.
         /// </summary>
-        /// <param name="configurationSection">The configuration section to bind options from.</param>
+        /// <param name="configuration">
+        /// The configuration root — not a pre-scoped section. Every MailVolt transport takes
+        /// the root and resolves its own section, so the section name lives in one place.
+        /// </param>
         /// <returns>The same builder instance for chaining.</returns>
-        public MailVoltBuilder UseResend(IConfigurationSection configurationSection)
+        public MailVoltBuilder UseResendTransport(IConfiguration configuration)
         {
             ArgumentNullException.ThrowIfNull(builder);
-            ArgumentNullException.ThrowIfNull(configurationSection);
+            ArgumentNullException.ThrowIfNull(configuration);
 
             builder.Services.AddOptions<ResendSenderOptions>()
-                .Bind(configurationSection);
+                .Bind(configuration.GetSection(ResendSenderOptions.SectionName));
 
             AddResendSender(builder.Services);
 
@@ -60,7 +65,7 @@ public static class ResendTransportExtensions
         /// </summary>
         /// <param name="configureOptions">A delegate to configure <see cref="ResendSenderOptions"/>.</param>
         /// <returns>The same builder instance for chaining.</returns>
-        public MailVoltBuilder UseResend(Action<ResendSenderOptions> configureOptions)
+        public MailVoltBuilder UseResendTransport(Action<ResendSenderOptions> configureOptions)
         {
             ArgumentNullException.ThrowIfNull(builder);
             ArgumentNullException.ThrowIfNull(configureOptions);

@@ -14,7 +14,7 @@ dotnet add package MailVolt.Transport.Brevo
 using MailVolt.Core.DependencyInjection;
 
 builder.Services.AddMailVolt()
-    .AddBrevoSender(options =>
+    .UseBrevoTransport(options =>
     {
         options.ApiKey = "your-api-key";
     });

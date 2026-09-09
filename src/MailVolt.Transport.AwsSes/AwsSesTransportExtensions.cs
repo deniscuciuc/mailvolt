@@ -1,12 +1,15 @@
 // ReSharper disable once CheckNamespace
 
 
-using MailVolt.Core.DependencyInjection;
+using MailVolt.Transport.AwsSes;
 using MailVolt.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MailVolt.Transport.AwsSes.DependencyInjection;
+// All MailVolt registration extensions live in MailVolt.Core.DependencyInjection, so one
+// using covers AddMailVolt and every transport and template engine.
+// ReSharper disable once CheckNamespace
+namespace MailVolt.Core.DependencyInjection;
 /// <summary>
 /// Extension methods for registering the AWS SES transport.
 /// </summary>

@@ -1,11 +1,13 @@
-using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
 using MailVolt.Transport.Postmark;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
+// All MailVolt registration extensions live in MailVolt.Core.DependencyInjection, so one
+// using covers AddMailVolt and every transport and template engine.
 // ReSharper disable once CheckNamespace
-namespace Microsoft.Extensions.DependencyInjection;
+namespace MailVolt.Core.DependencyInjection;
 
 /// <summary>
 /// Extension methods for registering the Postmark transport with the MailVolt pipeline.
@@ -18,7 +20,7 @@ public static class PostmarkTransportExtensions
     /// <param name="builder">The <see cref="MailVoltBuilder"/> returned by <c>AddMailVolt</c>.</param>
     /// <param name="configureOptions">An optional delegate to configure <see cref="PostmarkSenderOptions"/>.</param>
     /// <returns>The builder instance for chaining.</returns>
-    public static MailVoltBuilder AddPostmarkSender(
+    public static MailVoltBuilder UsePostmarkTransport(
         this MailVoltBuilder builder,
         // ReSharper disable once MethodOverloadWithOptionalParameter
         Action<PostmarkSenderOptions>? configureOptions = null)
@@ -46,7 +48,7 @@ public static class PostmarkTransportExtensions
     /// <param name="builder">The <see cref="MailVoltBuilder"/> returned by <c>AddMailVolt</c>.</param>
     /// <param name="configuration">The configuration root. The <c>"MailVolt:Postmark"</c> section will be bound to <see cref="PostmarkSenderOptions"/>.</param>
     /// <returns>The builder instance for chaining.</returns>
-    public static MailVoltBuilder AddPostmarkSender(
+    public static MailVoltBuilder UsePostmarkTransport(
         this MailVoltBuilder builder,
         IConfiguration configuration)
     {
@@ -66,7 +68,7 @@ public static class PostmarkTransportExtensions
     /// </summary>
     /// <param name="builder">The <see cref="MailVoltBuilder"/> returned by <c>AddMailVolt</c>.</param>
     /// <returns>The builder instance for chaining.</returns>
-    public static MailVoltBuilder AddPostmarkSender(this MailVoltBuilder builder)
+    public static MailVoltBuilder UsePostmarkTransport(this MailVoltBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 

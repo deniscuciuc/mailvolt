@@ -116,7 +116,7 @@ Each transport project:
 
 - Implements `ISender` (often named `*Sender`).
 - Defines its own options class (e.g., `SmtpSenderOptions`).
-- Provides DI extension methods on `MailVoltBuilder` (e.g., `UseSmtpTransport`, `AddSendGridSender`).
+- Provides DI extension methods on `MailVoltBuilder` (e.g., `UseSmtpTransport`, `UseSendGridTransport`).
 - HTTP-based transports use typed `HttpClient` instances registered with `AddStandardResilienceHandler()` from `Microsoft.Extensions.Http.Resilience`.
 
 ### Templates (`MailVolt.Templates.*`)

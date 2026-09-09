@@ -1,11 +1,13 @@
 
-using MailVolt.Core.DependencyInjection;
+using MailVolt.Transport.Smtp;
 using MailVolt.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
+// All MailVolt registration extensions live in MailVolt.Core.DependencyInjection, so one
+// using covers AddMailVolt and every transport and template engine.
 // ReSharper disable once CheckNamespace
-namespace MailVolt.Transport.Smtp.DependencyInjection;
+namespace MailVolt.Core.DependencyInjection;
 
 public static class SmtpTransportExtensions
 {
