@@ -3,12 +3,11 @@
     <PackageId>MailVolt.Transport.Smtp</PackageId>
 
     <Description>SMTP transport for MailVolt using MailKit</Description>
-    <NoWarn>CS1591</NoWarn>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="MailKit" />
     <PackageReference Include="MimeKit" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MailVolt.Core\MailVolt.Core.csproj" />

@@ -46,11 +46,9 @@
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.9" />
-    <!-- SourceLink -->
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.300" />
     <!-- Versioning -->
     <PackageVersion Include="MinVer" Version="7.0.0" />
     <!-- Integration tests -->
-    <PackageVersion Include="Testcontainers" Version="4.3.0" />
+    <PackageVersion Include="Testcontainers" Version="4.14.0" />
   </ItemGroup>
 </Project>

@@ -31,14 +31,27 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <Deterministic>true</Deterministic>
-    <!-- Suppress NuGet vulnerability warnings for transitive dependencies and AOT/trimming analysis for config binding -->
-    <NoWarn>$(NoWarn);NU1902;NU1903;NU1506;IL2026;IL3050</NoWarn>
+    <!-- Without this, SourceLink bakes local absolute paths into the PDBs and the
+         published .snupkg files do not work for consumers. -->
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <!--
+      Vulnerability warnings are NOT suppressed: a library published to NuGet must
+      surface its own advisories. NU1902/NU1903 stay as errors via
+      TreatWarningsAsErrors, so a vulnerable dependency fails the build.
+    -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+    <!-- NU1506: duplicate PackageVersion. IL2026/IL3050 are scoped per-project instead. -->
+    <NoWarn>$(NoWarn);NU1506</NoWarn>
     <!-- Non-packable projects (examples, tests) should not warn during pack -->
     <WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
   </PropertyGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
     <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\" />
-    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" />
+    <!-- Each package ships its own README.md; the root one is only a fallback. -->
+    <None Include="README.md" Condition="Exists('$(MSBuildProjectDirectory)/README.md')" Pack="true" PackagePath="\" />
+    <None Include="$(MSBuildThisFileDirectory)README.md" Condition="!Exists('$(MSBuildProjectDirectory)/README.md')" Pack="true" PackagePath="\" />
   </ItemGroup>
   <PropertyGroup>
     <MinVerTagPrefix>v</MinVerTagPrefix>
@@ -46,10 +59,14 @@
   <ItemGroup Condition="'$(IsPackable)' != 'false'">
     <PackageReference Include="MinVer" PrivateAssets="All" />
   </ItemGroup>
-  <ItemGroup>
+  <!-- Only the shipped libraries expose internals to the test assemblies; examples
+       and test projects have no reason to carry these attributes. -->
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
     <InternalsVisibleTo Include="MailVolt.Core.Tests" />
     <InternalsVisibleTo Include="MailVolt.Transport.Tests" />
     <InternalsVisibleTo Include="MailVolt.Templates.Tests" />
+    <InternalsVisibleTo Include="MailVolt.Testing.Tests" />
+    <InternalsVisibleTo Include="MailVolt.AutoConfigure.Tests" />
     <InternalsVisibleTo Include="MailVolt.Integration.Tests" />
   </ItemGroup>
 </Project>

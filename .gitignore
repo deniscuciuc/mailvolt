@@ -55,3 +55,6 @@ testlog.*
 
 ## Worktrees
 .worktrees/
+
+## Local build output
+artifacts/

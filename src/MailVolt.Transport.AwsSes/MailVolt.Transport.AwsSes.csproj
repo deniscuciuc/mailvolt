@@ -3,12 +3,11 @@
     <PackageId>MailVolt.Transport.AwsSes</PackageId>
 
     <Description>AWS SES transport for MailVolt</Description>
-    <NoWarn>CS1591</NoWarn>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="AWSSDK.SimpleEmailV2" />
     <PackageReference Include="MimeKit" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MailVolt.Core\MailVolt.Core.csproj" />

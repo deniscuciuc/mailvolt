@@ -18,11 +18,10 @@ public sealed class SmtpIntegrationTests : IAsyncLifetime
 
     public SmtpIntegrationTests()
     {
-        _mailDev = new ContainerBuilder()
-            .WithImage("maildev/maildev:latest")
+        _mailDev = new ContainerBuilder("maildev/maildev:2.2.1")
             .WithPortBinding(1025, true)
             .WithPortBinding(1080, true)
-            .WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(1025))
+            .WithWaitStrategy(Wait.ForUnixContainer().UntilInternalTcpPortIsAvailable(1025))
             .Build();
     }
 

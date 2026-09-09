@@ -3,12 +3,11 @@
     <PackageId>MailVolt.Transport.Postmark</PackageId>
 
     <Description>Postmark transport for MailVolt</Description>
-    <NoWarn>CS1591</NoWarn>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Postmark" />
     <PackageReference Include="Microsoft.Extensions.Options" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="MailVolt.Transport.Tests" />

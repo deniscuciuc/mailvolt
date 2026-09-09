@@ -3,12 +3,11 @@
     <PackageId>MailVolt.Transport.Brevo</PackageId>
 
     <Description>Brevo (formerly Sendinblue) transport for MailVolt</Description>
-    <NoWarn>CS1591</NoWarn>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="brevo_csharp" />
     <PackageReference Include="Microsoft.Extensions.Options" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="MailVolt.Transport.Tests" />

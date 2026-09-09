@@ -8,11 +8,12 @@ indent_size = 4
 trim_trailing_whitespace = true
 insert_final_newline = true
 
-[*.{csproj,props,targets}]
+[*.{csproj,props,targets,json,yml,yaml}]
 indent_size = 2
-
-# IDE0160: Convert to file scoped namespace
-csharp_style_namespace_declarations = file_scoped:warning
 
 [*.md]
 trim_trailing_whitespace = false
+
+[*.cs]
+# IDE0160: the codebase uses file-scoped namespaces throughout.
+csharp_style_namespace_declarations = file_scoped:warning
