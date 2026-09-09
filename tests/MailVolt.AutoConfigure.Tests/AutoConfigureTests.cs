@@ -1,11 +1,11 @@
 using AwesomeAssertions;
 using MailVolt.Core.Interfaces;
 using MailVolt.Core.Options;
-using MailVolt.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Xunit;
+using MailVolt.Core.Transports;
 
 namespace MailVolt.AutoConfigure.Tests;
 

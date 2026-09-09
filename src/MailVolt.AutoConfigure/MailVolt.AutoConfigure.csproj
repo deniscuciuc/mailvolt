@@ -24,7 +24,6 @@
     <ProjectReference Include="../MailVolt.Templates.Razor/MailVolt.Templates.Razor.csproj" />
     <ProjectReference Include="../MailVolt.Templates.Liquid/MailVolt.Templates.Liquid.csproj" />
     <ProjectReference Include="../MailVolt.Templates.Handlebars/MailVolt.Templates.Handlebars.csproj" />
-    <ProjectReference Include="../MailVolt.Testing/MailVolt.Testing.csproj" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
   </ItemGroup>

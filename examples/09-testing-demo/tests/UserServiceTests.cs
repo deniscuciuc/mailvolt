@@ -2,9 +2,9 @@ using AwesomeAssertions;
 using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Models;
 using MailVolt.Testing;
-using MailVolt.Testing.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using MailVolt.Core.Transports;
 
 public sealed class UserServiceTests : IDisposable
 {

@@ -2,7 +2,6 @@ using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
 using MailVolt.Core.Models;
 using MailVolt.Templates.Liquid.DependencyInjection;
-using MailVolt.Testing.DependencyInjection;
 using MailVolt.Transport.SendGrid.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

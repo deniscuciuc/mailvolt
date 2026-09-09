@@ -5,6 +5,7 @@ using MailVolt.Testing;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using Xunit;
+using MailVolt.Core.Transports;
 
 namespace MailVolt.Core.Tests;
 

@@ -1,5 +1,4 @@
 using MailVolt.Core.DependencyInjection;
-using MailVolt.Testing.DependencyInjection;
 using MailVolt.Templates.Handlebars.DependencyInjection;
 using MailVolt.Templates.Liquid.DependencyInjection;
 using MailVolt.Templates.Razor.DependencyInjection;
