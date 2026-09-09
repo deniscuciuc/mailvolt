@@ -13,29 +13,31 @@ public sealed class SmtpSender(IOptions<SmtpSenderOptions> options) : ISender
 
     public async Task<EmailResult> SendAsync(EmailMessage email, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(email);
+
         try
         {
             using var client = new SmtpClient
             {
                 Timeout = _options.TimeoutMs
             };
-            var message = BuildMimeMessage(email);
+            using var message = BuildMimeMessage(email);
 
-            await client.ConnectAsync(_options.Host, _options.Port, _options.Security, cancellationToken);
+            await client.ConnectAsync(_options.Host, _options.Port, _options.Security, cancellationToken).ConfigureAwait(false);
 
             if (_options.OAuth2TokenProvider is not null)
             {
-                var token = await _options.OAuth2TokenProvider(cancellationToken);
+                var token = await _options.OAuth2TokenProvider(cancellationToken).ConfigureAwait(false);
                 await client.AuthenticateAsync(new SaslMechanismOAuth2(_options.Username ?? string.Empty, token),
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
             else if (_options.Username is not null && _options.Password is not null)
             {
-                await client.AuthenticateAsync(_options.Username, _options.Password, cancellationToken);
+                await client.AuthenticateAsync(_options.Username, _options.Password, cancellationToken).ConfigureAwait(false);
             }
 
-            var response = await client.SendAsync(message, cancellationToken);
-            await client.DisconnectAsync(true, cancellationToken);
+            var response = await client.SendAsync(message, cancellationToken).ConfigureAwait(false);
+            await client.DisconnectAsync(true, cancellationToken).ConfigureAwait(false);
 
             return EmailResult.Success(response);
         }

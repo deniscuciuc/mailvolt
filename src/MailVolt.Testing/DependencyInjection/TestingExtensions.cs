@@ -15,6 +15,8 @@ public static class TestingExtensions
     /// </summary>
     public static MailVoltBuilder UseInMemoryTransport(this MailVoltBuilder builder)
     {
+        ArgumentNullException.ThrowIfNull(builder);
+
         builder.Services.AddSingleton<InMemorySender>();
         builder.Services.AddSingleton<ISender>(sp => sp.GetRequiredService<InMemorySender>());
         return builder;

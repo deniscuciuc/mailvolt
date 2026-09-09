@@ -53,9 +53,14 @@ public static class RazorTemplateExtensions
         }
 
         builder.Services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-        var diagnostics = new DiagnosticListener("Microsoft.AspNetCore");
-        builder.Services.TryAddSingleton<DiagnosticSource>(diagnostics);
-        builder.Services.TryAddSingleton<DiagnosticListener>(diagnostics);
+        // Registered once and forwarded: adding the same instance under two descriptors
+        // makes the container dispose it twice on shutdown. The container owns the
+        // listener's lifetime from here.
+#pragma warning disable CA2000 // Ownership transfers to the service provider.
+        builder.Services.TryAddSingleton(new DiagnosticListener("Microsoft.AspNetCore"));
+#pragma warning restore CA2000
+        builder.Services.TryAddSingleton<DiagnosticSource>(
+            sp => sp.GetRequiredService<DiagnosticListener>());
         builder.Services.AddTransient<ITemplateRenderer, RazorTemplateRenderer>();
 
         if (configure is not null)

@@ -86,7 +86,7 @@ public sealed class AwsSesSender : ISender, IDisposable
             ConfigurationSetName = _options.ConfigurationSetName
         };
 
-        var response = await client.SendEmailAsync(request, ct);
+        var response = await client.SendEmailAsync(request, ct).ConfigureAwait(false);
         return EmailResult.Success(response.MessageId);
     }
 
@@ -95,7 +95,7 @@ public sealed class AwsSesSender : ISender, IDisposable
         EmailMessage email,
         CancellationToken ct)
     {
-        var mimeMessage = new MimeMessage();
+        using var mimeMessage = new MimeMessage();
 
         if (email.From is not null)
             mimeMessage.From.Add(new MailboxAddress(email.From.DisplayName, email.From.Address));
@@ -128,8 +128,9 @@ public sealed class AwsSesSender : ISender, IDisposable
 
         mimeMessage.Body = bodyBuilder.ToMessageBody();
 
-        await using var memoryStream = new MemoryStream();
-        await mimeMessage.WriteToAsync(memoryStream, ct);
+        var memoryStream = new MemoryStream();
+        await using var streamScope = memoryStream.ConfigureAwait(false);
+        await mimeMessage.WriteToAsync(memoryStream, ct).ConfigureAwait(false);
         memoryStream.Position = 0;
 
         var request = new SendEmailRequest
@@ -148,7 +149,7 @@ public sealed class AwsSesSender : ISender, IDisposable
             ConfigurationSetName = _options.ConfigurationSetName
         };
 
-        var response = await client.SendEmailAsync(request, ct);
+        var response = await client.SendEmailAsync(request, ct).ConfigureAwait(false);
         return EmailResult.Success(response.MessageId);
     }
 }

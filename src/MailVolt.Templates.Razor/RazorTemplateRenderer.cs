@@ -70,7 +70,8 @@ public sealed class RazorTemplateRenderer : ITemplateRenderer
                 $"Searched locations: {string.Join(", ", viewResult.SearchedLocations ?? [])}");
         }
 
-        await using var writer = new StringWriter();
+        var writer = new StringWriter();
+        await using var writerScope = writer.ConfigureAwait(false);
         var viewContext = new ViewContext(
             actionContext,
             viewResult.View,
@@ -84,7 +85,7 @@ public sealed class RazorTemplateRenderer : ITemplateRenderer
             writer,
             new HtmlHelperOptions());
 
-        await viewResult.View.RenderAsync(viewContext);
+        await viewResult.View.RenderAsync(viewContext).ConfigureAwait(false);
         return writer.ToString();
     }
 

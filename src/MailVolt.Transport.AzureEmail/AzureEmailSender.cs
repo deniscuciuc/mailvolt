@@ -78,7 +78,7 @@ public sealed class AzureEmailSender : ISender
             var operation = await _client.SendAsync(
                 Azure.WaitUntil.Completed,
                 azureMessage,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             return EmailResult.Success(operation.Id);
         }

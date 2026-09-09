@@ -19,7 +19,7 @@ public sealed class PostmarkSenderTests
         MessageStream = "outbound"
     };
 
-    private static ILogger<PostmarkSender> CreateLogger()
+    private static NullLogger<PostmarkSender> CreateLogger()
         => NullLogger<PostmarkSender>.Instance;
 
     [Fact]

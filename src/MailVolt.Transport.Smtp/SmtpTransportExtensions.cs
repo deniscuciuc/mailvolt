@@ -13,6 +13,9 @@ public static class SmtpTransportExtensions
     {
         public MailVoltBuilder UseSmtpTransport(Action<SmtpSenderOptions> configure)
         {
+            ArgumentNullException.ThrowIfNull(builder);
+            ArgumentNullException.ThrowIfNull(configure);
+
             builder.Services.Configure(configure);
             builder.Services.AddTransient<ISender, SmtpSender>();
             return builder;
@@ -20,6 +23,9 @@ public static class SmtpTransportExtensions
 
         public MailVoltBuilder UseSmtpTransport(IConfiguration configuration)
         {
+            ArgumentNullException.ThrowIfNull(builder);
+            ArgumentNullException.ThrowIfNull(configuration);
+
             builder.Services.Configure<SmtpSenderOptions>(
                 configuration.GetSection(SmtpSenderOptions.SectionName));
             builder.Services.AddTransient<ISender, SmtpSender>();

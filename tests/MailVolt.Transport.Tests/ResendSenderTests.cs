@@ -18,7 +18,7 @@ public sealed class ResendSenderTests
         BaseUrl = "https://api.resend.com"
     };
 
-    private static ILogger<ResendSender> CreateLogger()
+    private static NullLogger<ResendSender> CreateLogger()
         => NullLogger<ResendSender>.Instance;
 
     [Fact]

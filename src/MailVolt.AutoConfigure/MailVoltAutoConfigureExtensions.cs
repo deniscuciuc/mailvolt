@@ -33,6 +33,10 @@ public static class MailVoltAutoConfigureExtensions
         IConfiguration configuration,
         string sectionName = "MailVolt")
     {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sectionName);
+
         var section = configuration.GetSection(sectionName);
         if (!section.Exists())
         {

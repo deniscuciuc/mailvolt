@@ -54,7 +54,12 @@ public sealed class MailgunSenderTests
     public async Task SendAsync_sends_to_correct_endpoint()
     {
         var capturedRequest = new HttpRequestMessage();
-        var handler = Helpers.HttpMessageHandlerStub.Capture(req => capturedRequest = req);
+        var capturedBody = string.Empty;
+        var handler = Helpers.HttpMessageHandlerStub.Capture((req, body) =>
+        {
+            capturedRequest = req;
+            capturedBody = body;
+        });
         var httpClient = new HttpClient(handler);
 
         var sender = new MailgunSender(httpClient, Helpers.OptionsOf(_options));
@@ -71,7 +76,12 @@ public sealed class MailgunSenderTests
     public async Task SendAsync_includes_from_to_and_subject_in_form_data()
     {
         var capturedRequest = new HttpRequestMessage();
-        var handler = Helpers.HttpMessageHandlerStub.Capture(req => capturedRequest = req);
+        var capturedBody = string.Empty;
+        var handler = Helpers.HttpMessageHandlerStub.Capture((req, body) =>
+        {
+            capturedRequest = req;
+            capturedBody = body;
+        });
         var httpClient = new HttpClient(handler);
 
         var sender = new MailgunSender(httpClient, Helpers.OptionsOf(_options));
@@ -79,7 +89,7 @@ public sealed class MailgunSenderTests
 
         await sender.SendAsync(email);
 
-        var body = await capturedRequest.Content!.ReadAsStringAsync();
+        var body = capturedBody;
 
         // Multipart form-data field names and values appear in the body
         body.Should().Contain("name=from");
@@ -94,7 +104,12 @@ public sealed class MailgunSenderTests
     public async Task SendAsync_includes_text_and_html_body()
     {
         var capturedRequest = new HttpRequestMessage();
-        var handler = Helpers.HttpMessageHandlerStub.Capture(req => capturedRequest = req);
+        var capturedBody = string.Empty;
+        var handler = Helpers.HttpMessageHandlerStub.Capture((req, body) =>
+        {
+            capturedRequest = req;
+            capturedBody = body;
+        });
         var httpClient = new HttpClient(handler);
 
         var sender = new MailgunSender(httpClient, Helpers.OptionsOf(_options));
@@ -102,7 +117,7 @@ public sealed class MailgunSenderTests
 
         await sender.SendAsync(email);
 
-        var body = await capturedRequest.Content!.ReadAsStringAsync();
+        var body = capturedBody;
 
         body.Should().Contain("name=text");
         body.Should().Contain("Hello plain text");
@@ -114,7 +129,12 @@ public sealed class MailgunSenderTests
     public async Task SendAsync_includes_inline_attachment_correctly()
     {
         var capturedRequest = new HttpRequestMessage();
-        var handler = Helpers.HttpMessageHandlerStub.Capture(req => capturedRequest = req);
+        var capturedBody = string.Empty;
+        var handler = Helpers.HttpMessageHandlerStub.Capture((req, body) =>
+        {
+            capturedRequest = req;
+            capturedBody = body;
+        });
         var httpClient = new HttpClient(handler);
 
         var sender = new MailgunSender(httpClient, Helpers.OptionsOf(_options));
@@ -122,7 +142,7 @@ public sealed class MailgunSenderTests
 
         await sender.SendAsync(email);
 
-        var body = await capturedRequest.Content!.ReadAsStringAsync();
+        var body = capturedBody;
 
         body.Should().Contain("inline");
         body.Should().Contain("logo.png");
@@ -133,7 +153,12 @@ public sealed class MailgunSenderTests
     public async Task SendAsync_includes_regular_attachment()
     {
         var capturedRequest = new HttpRequestMessage();
-        var handler = Helpers.HttpMessageHandlerStub.Capture(req => capturedRequest = req);
+        var capturedBody = string.Empty;
+        var handler = Helpers.HttpMessageHandlerStub.Capture((req, body) =>
+        {
+            capturedRequest = req;
+            capturedBody = body;
+        });
         var httpClient = new HttpClient(handler);
 
         var sender = new MailgunSender(httpClient, Helpers.OptionsOf(_options));
@@ -141,7 +166,7 @@ public sealed class MailgunSenderTests
 
         await sender.SendAsync(email);
 
-        var body = await capturedRequest.Content!.ReadAsStringAsync();
+        var body = capturedBody;
 
         body.Should().Contain("attachment");
         body.Should().Contain("report.pdf");
@@ -171,7 +196,12 @@ public sealed class MailgunSenderTests
     public async Task SendAsync_includes_tags_in_form_data()
     {
         var capturedRequest = new HttpRequestMessage();
-        var handler = Helpers.HttpMessageHandlerStub.Capture(req => capturedRequest = req);
+        var capturedBody = string.Empty;
+        var handler = Helpers.HttpMessageHandlerStub.Capture((req, body) =>
+        {
+            capturedRequest = req;
+            capturedBody = body;
+        });
         var httpClient = new HttpClient(handler);
 
         var sender = new MailgunSender(httpClient, Helpers.OptionsOf(_options));
@@ -179,7 +209,7 @@ public sealed class MailgunSenderTests
 
         await sender.SendAsync(email);
 
-        var body = await capturedRequest.Content!.ReadAsStringAsync();
+        var body = capturedBody;
 
         body.Should().Contain("name=\"o:tag\"");
         body.Should().Contain("notification");
@@ -209,7 +239,12 @@ public sealed class MailgunSenderTests
     public async Task SendAsync_includes_custom_headers_in_form_data()
     {
         var capturedRequest = new HttpRequestMessage();
-        var handler = Helpers.HttpMessageHandlerStub.Capture(req => capturedRequest = req);
+        var capturedBody = string.Empty;
+        var handler = Helpers.HttpMessageHandlerStub.Capture((req, body) =>
+        {
+            capturedRequest = req;
+            capturedBody = body;
+        });
         var httpClient = new HttpClient(handler);
 
         var sender = new MailgunSender(httpClient, Helpers.OptionsOf(_options));
@@ -224,7 +259,7 @@ public sealed class MailgunSenderTests
 
         await sender.SendAsync(email);
 
-        var body = await capturedRequest.Content!.ReadAsStringAsync();
+        var body = capturedBody;
 
         body.Should().Contain("name=\"h:X-Campaign-Id\"");
         body.Should().Contain("camp-123");
@@ -236,7 +271,12 @@ public sealed class MailgunSenderTests
     public async Task SendAsync_with_native_templates_maps_reserved_headers_to_mailgun_fields()
     {
         var capturedRequest = new HttpRequestMessage();
-        var handler = Helpers.HttpMessageHandlerStub.Capture(req => capturedRequest = req);
+        var capturedBody = string.Empty;
+        var handler = Helpers.HttpMessageHandlerStub.Capture((req, body) =>
+        {
+            capturedRequest = req;
+            capturedBody = body;
+        });
         var httpClient = new HttpClient(handler);
         var options = new MailgunSenderOptions
         {
@@ -259,7 +299,7 @@ public sealed class MailgunSenderTests
 
         await sender.SendAsync(email);
 
-        var body = await capturedRequest.Content!.ReadAsStringAsync();
+        var body = capturedBody;
 
         body.Should().Contain("name=template");
         body.Should().Contain("order-confirmation");
