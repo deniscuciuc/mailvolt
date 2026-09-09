@@ -69,9 +69,8 @@ public sealed class BrevoSender : IBrevoSender
 
         foreach (var attachment in email.Attachments)
         {
-            using var ms = new MemoryStream();
-            attachment.Content.CopyTo(ms);
-            attachments.Add(new SendSmtpEmailAttachment(null, ms.ToArray(), attachment.FileName));
+            attachments.Add(
+                new SendSmtpEmailAttachment(null, attachment.Content.ToArray(), attachment.FileName));
         }
 
         return new SendSmtpEmail(

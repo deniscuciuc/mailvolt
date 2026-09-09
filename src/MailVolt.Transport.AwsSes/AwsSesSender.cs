@@ -105,8 +105,8 @@ public sealed class AwsSesSender(IOptions<AwsSesSenderOptions> options) : ISende
 
         foreach (var attachment in email.Attachments)
         {
-            await bodyBuilder.Attachments.AddAsync(attachment.FileName, attachment.Content,
-                ContentType.Parse(attachment.ContentType), ct);
+            bodyBuilder.Attachments.Add(attachment.FileName, attachment.Content.ToArray(),
+                ContentType.Parse(attachment.ContentType));
         }
 
         mimeMessage.Body = bodyBuilder.ToMessageBody();

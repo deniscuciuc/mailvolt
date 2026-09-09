@@ -115,10 +115,8 @@ internal sealed class PostmarkSender : IPostmarkSender
 
         foreach (var attachment in email.Attachments)
         {
-            using var memoryStream = new MemoryStream();
-            attachment.Content.CopyTo(memoryStream);
             message.AddAttachment(
-                memoryStream.ToArray(),
+                attachment.Content.ToArray(),
                 attachment.FileName,
                 attachment.ContentType,
                 attachment.ContentId);

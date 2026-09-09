@@ -32,13 +32,15 @@ internal sealed class EmailBuilder(
     private EmailPriority _priority = EmailPriority.Normal;
     private readonly List<string> _tags = [];
     private readonly Dictionary<string, string> _headers = [];
-    private readonly List<EmailAttachment> _attachments = [];
+    private readonly List<AttachmentBuilder> _attachmentBuilders = [];
     private string? _template;
     private object? _templateModel;
 
     /// <inheritdoc />
     public IEmailBuilder From(EmailAddress address)
     {
+        ArgumentNullException.ThrowIfNull(address);
+
         _from = address;
         return this;
     }
@@ -46,6 +48,8 @@ internal sealed class EmailBuilder(
     /// <inheritdoc />
     public IEmailBuilder To(EmailAddress address)
     {
+        ArgumentNullException.ThrowIfNull(address);
+
         _to.Add(address);
         return this;
     }
@@ -53,6 +57,8 @@ internal sealed class EmailBuilder(
     /// <inheritdoc />
     public IEmailBuilder Cc(EmailAddress address)
     {
+        ArgumentNullException.ThrowIfNull(address);
+
         _cc.Add(address);
         return this;
     }
@@ -60,6 +66,8 @@ internal sealed class EmailBuilder(
     /// <inheritdoc />
     public IEmailBuilder Bcc(EmailAddress address)
     {
+        ArgumentNullException.ThrowIfNull(address);
+
         _bcc.Add(address);
         return this;
     }
@@ -67,6 +75,8 @@ internal sealed class EmailBuilder(
     /// <inheritdoc />
     public IEmailBuilder ReplyTo(EmailAddress address)
     {
+        ArgumentNullException.ThrowIfNull(address);
+
         _replyTo = address;
         return this;
     }
@@ -109,6 +119,8 @@ internal sealed class EmailBuilder(
     /// <inheritdoc />
     public IEmailBuilder Tag(string tag)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tag);
+
         _tags.Add(tag);
         return this;
     }
@@ -116,6 +128,9 @@ internal sealed class EmailBuilder(
     /// <inheritdoc />
     public IEmailBuilder Header(string key, string value)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        ArgumentNullException.ThrowIfNull(value);
+
         _headers[key] = value;
         return this;
     }
@@ -123,16 +138,20 @@ internal sealed class EmailBuilder(
     /// <inheritdoc />
     public IEmailBuilder Attach(Action<IAttachmentBuilder> configure)
     {
+        ArgumentNullException.ThrowIfNull(configure);
+
         var attachmentBuilder = new AttachmentBuilder();
         configure(attachmentBuilder);
-        _attachments.Add(attachmentBuilder.Build());
+        _attachmentBuilders.Add(attachmentBuilder);
         return this;
     }
 
     /// <inheritdoc />
     public IEmailBuilder UsingTemplate<TModel>(string template, TModel model)
     {
-        _template = template ?? throw new ArgumentNullException(nameof(template));
+        ArgumentException.ThrowIfNullOrWhiteSpace(template);
+
+        _template = template;
         _templateModel = model;
         return this;
     }
@@ -152,11 +171,14 @@ internal sealed class EmailBuilder(
             throw new InvalidOperationException("Subject is required.");
         }
 
-        if (_from is null)
+        // Resolved into a local rather than assigned to _from, so BuildAsync stays free
+        // of side effects and can be called more than once.
+        var from = _from;
+        if (from is null)
         {
             if (_options.DefaultFromAddress is { Length: > 0 } defaultFrom)
             {
-                _from = new EmailAddress(defaultFrom, _options.DefaultFromDisplayName);
+                from = new EmailAddress(defaultFrom, _options.DefaultFromDisplayName);
             }
             else
             {
@@ -165,32 +187,51 @@ internal sealed class EmailBuilder(
             }
         }
 
-        if (_htmlBody is null &&
-            _textBody is null &&
-            _template is not null &&
-            _templateModel is not null &&
-            templateRenderer is not null)
+        var htmlBody = _htmlBody;
+        if (_template is not null && htmlBody is null && _textBody is null)
         {
-            _htmlBody = await templateRenderer.RenderAsync(
-                _template,
-                _templateModel,
-                cancellationToken);
+            // Previously an unrenderable template was skipped in silence and an email with
+            // an empty body was sent. Failing loudly is the only safe behaviour here.
+            if (templateRenderer is null)
+            {
+                throw new InvalidOperationException(
+                    $"Template '{_template}' cannot be rendered because no ITemplateRenderer is registered. " +
+                    "Register one with UseRazorTemplates(), UseLiquidTemplates() or UseHandlebarsTemplates().");
+            }
+
+            if (_templateModel is null)
+            {
+                throw new InvalidOperationException(
+                    $"Template '{_template}' was specified without a model. Pass a model to UsingTemplate.");
+            }
+
+            htmlBody = await templateRenderer
+                .RenderAsync(_template, _templateModel, cancellationToken)
+                .ConfigureAwait(false);
         }
 
+        var attachments = new List<EmailAttachment>(_attachmentBuilders.Count);
+        foreach (var attachmentBuilder in _attachmentBuilders)
+        {
+            attachments.Add(await attachmentBuilder.BuildAsync(cancellationToken).ConfigureAwait(false));
+        }
+
+        // Every collection is copied, not wrapped. List<T>.AsReadOnly() returns a view over
+        // the live list, so a reused builder would mutate messages it had already produced.
         return new EmailMessage
         {
-            From = _from,
-            To = _to.AsReadOnly(),
-            Cc = _cc.AsReadOnly(),
-            Bcc = _bcc.AsReadOnly(),
+            From = from,
+            To = [.. _to],
+            Cc = [.. _cc],
+            Bcc = [.. _bcc],
             ReplyTo = _replyTo,
             Subject = _subject,
             TextBody = _textBody,
-            HtmlBody = _htmlBody,
+            HtmlBody = htmlBody,
             Priority = _priority,
-            Attachments = _attachments.AsReadOnly(),
+            Attachments = attachments,
             Headers = new Dictionary<string, string>(_headers),
-            Tags = _tags.AsReadOnly(),
+            Tags = [.. _tags],
         };
     }
 
@@ -204,7 +245,7 @@ internal sealed class EmailBuilder(
                 "Alternatively, use BuildAsync to construct the message and send it manually.");
         }
 
-        var email = await BuildAsync(cancellationToken);
-        return await sender.SendAsync(email, cancellationToken);
+        var email = await BuildAsync(cancellationToken).ConfigureAwait(false);
+        return await sender.SendAsync(email, cancellationToken).ConfigureAwait(false);
     }
 }

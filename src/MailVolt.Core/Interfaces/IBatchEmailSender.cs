@@ -21,8 +21,13 @@ public enum FailureStrategy
 /// <summary>
 /// Options for controlling batch email sending behaviour.
 /// </summary>
-/// <param name="MaxConcurrency">Maximum number of concurrent send operations. Defaults to 5.</param>
-/// <param name="DelayMs">Optional delay (in milliseconds) between each send operation.</param>
+/// <param name="MaxConcurrency">Maximum number of concurrent send operations. Must be greater than zero. Defaults to 5.</param>
+/// <param name="DelayMs">
+/// Optional delay (in milliseconds) applied after each send while still holding the
+/// concurrency slot, capping the send rate at roughly
+/// <paramref name="MaxConcurrency"/> / (send time + <paramref name="DelayMs"/>).
+/// Must not be negative.
+/// </param>
 /// <param name="FailureStrategy">Strategy to apply when a send fails. Defaults to <see cref="FailureStrategy.StopOnFirstFailure"/>.</param>
 public sealed record BatchSendOptions(
     int MaxConcurrency = 5,

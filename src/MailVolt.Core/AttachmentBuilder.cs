@@ -37,7 +37,12 @@ internal sealed class AttachmentBuilder : IAttachmentBuilder
     };
 
     private string? _fileName;
-    private Stream? _content;
+    // Exactly one source is set. File reads and stream copies are deferred to
+    // BuildAsync so the IO happens asynchronously, on the async build path, rather
+    // than while the caller is still describing the attachment.
+    private ReadOnlyMemory<byte>? _bytes;
+    private string? _path;
+    private Stream? _stream;
     private string? _contentType;
     private bool _isContentTypeExplicit;
     private string? _contentId;
@@ -45,10 +50,11 @@ internal sealed class AttachmentBuilder : IAttachmentBuilder
     /// <inheritdoc />
     public IAttachmentBuilder FromFile(string path)
     {
-        ArgumentNullException.ThrowIfNull(path);
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         _fileName ??= Path.GetFileName(path);
-        _content = File.OpenRead(path);
+        ClearSources();
+        _path = path;
         _contentType ??= DetectContentType(_fileName);
 
         return this;
@@ -57,11 +63,12 @@ internal sealed class AttachmentBuilder : IAttachmentBuilder
     /// <inheritdoc />
     public IAttachmentBuilder FromStream(string fileName, Stream stream)
     {
-        ArgumentNullException.ThrowIfNull(fileName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         ArgumentNullException.ThrowIfNull(stream);
 
         _fileName ??= fileName;
-        _content = stream;
+        ClearSources();
+        _stream = stream;
         _contentType ??= DetectContentType(fileName);
 
         return this;
@@ -70,11 +77,25 @@ internal sealed class AttachmentBuilder : IAttachmentBuilder
     /// <inheritdoc />
     public IAttachmentBuilder FromBytes(string fileName, byte[] bytes)
     {
-        ArgumentNullException.ThrowIfNull(fileName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         ArgumentNullException.ThrowIfNull(bytes);
 
         _fileName ??= fileName;
-        _content = new MemoryStream(bytes);
+        ClearSources();
+        _bytes = bytes;
+        _contentType ??= DetectContentType(fileName);
+
+        return this;
+    }
+
+    /// <inheritdoc />
+    public IAttachmentBuilder FromMemory(string fileName, ReadOnlyMemory<byte> content)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+
+        _fileName ??= fileName;
+        ClearSources();
+        _bytes = content;
         _contentType ??= DetectContentType(fileName);
 
         return this;
@@ -86,7 +107,12 @@ internal sealed class AttachmentBuilder : IAttachmentBuilder
         ArgumentNullException.ThrowIfNull(contentId);
 
         _contentId = contentId;
-        if (!_isContentTypeExplicit)
+
+        // Only fall back to PNG when the type could not be detected at all. Previously
+        // this overwrote a correctly sniffed type, so .FromFile("logo.jpg") followed by
+        // .AsInlineImage(...) declared a JPEG as image/png.
+        if (!_isContentTypeExplicit &&
+            (_contentType is null || _contentType == "application/octet-stream"))
         {
             _contentType = "image/png";
         }
@@ -114,26 +140,58 @@ internal sealed class AttachmentBuilder : IAttachmentBuilder
     }
 
     /// <summary>
-    /// Builds the <see cref="EmailAttachment"/> from the accumulated state.
+    /// Materializes the <see cref="EmailAttachment"/>, reading the configured file or
+    /// stream into memory.
     /// </summary>
+    /// <param name="cancellationToken">A token to cancel the read.</param>
     /// <returns>The constructed <see cref="EmailAttachment"/>.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when <see cref="EmailAttachment.FileName"/> or <see cref="EmailAttachment.Content"/> is not set.</exception>
-    internal EmailAttachment Build()
+    /// <exception cref="InvalidOperationException">Thrown when the file name or content source is not set.</exception>
+    internal async Task<EmailAttachment> BuildAsync(CancellationToken cancellationToken = default)
     {
         if (_fileName is null)
         {
             throw new InvalidOperationException("File name must be set before building the attachment.");
         }
 
-        return _content is null
-            ? throw new InvalidOperationException("Content must be set before building the attachment.")
-            : new EmailAttachment
-            {
-                FileName = _fileName,
-                Content = _content,
-                ContentType = _contentType ?? "application/octet-stream",
-                ContentId = _contentId,
-            };
+        var content = await ReadContentAsync(cancellationToken).ConfigureAwait(false);
+
+        return new EmailAttachment
+        {
+            FileName = _fileName,
+            Content = content,
+            ContentType = _contentType ?? "application/octet-stream",
+            ContentId = _contentId,
+        };
+    }
+
+    private async Task<ReadOnlyMemory<byte>> ReadContentAsync(CancellationToken cancellationToken)
+    {
+        if (_bytes is { } bytes)
+        {
+            return bytes;
+        }
+
+        if (_path is { } path)
+        {
+            return await File.ReadAllBytesAsync(path, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (_stream is null)
+        {
+            throw new InvalidOperationException("Content must be set before building the attachment.");
+        }
+
+        // The caller owns the stream, so it is read but never disposed here.
+        using var buffer = new MemoryStream();
+        await _stream.CopyToAsync(buffer, cancellationToken).ConfigureAwait(false);
+        return buffer.ToArray();
+    }
+
+    private void ClearSources()
+    {
+        _bytes = null;
+        _path = null;
+        _stream = null;
     }
 
     private static string DetectContentType(string fileName)

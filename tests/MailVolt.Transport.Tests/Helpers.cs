@@ -79,7 +79,7 @@ internal static class Helpers
                 new EmailAttachment
                 {
                     FileName = "logo.png",
-                    Content = new MemoryStream("image-data"u8.ToArray()),
+                    Content = "image-data"u8.ToArray(),
                     ContentType = "image/png",
                     ContentId = "logo@mailvolt"
                 }
@@ -99,7 +99,7 @@ internal static class Helpers
                 new EmailAttachment
                 {
                     FileName = "report.pdf",
-                    Content = new MemoryStream("pdf-data"u8.ToArray()),
+                    Content = "pdf-data"u8.ToArray(),
                     ContentType = "application/pdf"
                 }
             ]

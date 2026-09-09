@@ -53,9 +53,7 @@ public sealed class AzureEmailSender : ISender
 
             foreach (var attachment in email.Attachments)
             {
-                await using var ms = new MemoryStream();
-                await attachment.Content.CopyToAsync(ms, cancellationToken);
-                var binaryData = BinaryData.FromBytes(ms.ToArray());
+                var binaryData = BinaryData.FromBytes(attachment.Content);
 
                 var azureAttachment = new Azure.Communication.Email.EmailAttachment(
                     attachment.FileName,

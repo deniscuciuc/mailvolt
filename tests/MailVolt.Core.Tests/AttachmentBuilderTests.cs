@@ -10,57 +10,57 @@ public sealed class AttachmentBuilderTests
     // ─── FromBytes ─────────────────────────────────────────────────────
 
     [Fact]
-    public void FromBytes_sets_file_name_and_content()
+    public async Task FromBytes_sets_file_name_and_content()
     {
         var bytes = "hello"u8.ToArray();
         var builder = CreateBuilder();
 
-        var attachment = ((AttachmentBuilder)builder
+        var attachment = await ((AttachmentBuilder)builder
             .FromBytes("readme.txt", bytes))
-            .Build();
+            .BuildAsync();
 
         attachment.FileName.Should().Be("readme.txt");
-        attachment.Content.Should().BeAssignableTo<MemoryStream>();
+        attachment.Content.ToArray().Should().Equal(bytes);
         attachment.ContentType.Should().Be("text/plain");
         attachment.ContentId.Should().BeNull();
         attachment.IsInline.Should().BeFalse();
     }
 
     [Fact]
-    public void FromBytes_detects_mime_type_from_extension()
+    public async Task FromBytes_detects_mime_type_from_extension()
     {
         var bytes = new byte[] { 1, 2, 3 };
         var builder = CreateBuilder();
 
-        var attachment = ((AttachmentBuilder)builder
+        var attachment = await ((AttachmentBuilder)builder
             .FromBytes("report.pdf", bytes))
-            .Build();
+            .BuildAsync();
 
         attachment.ContentType.Should().Be("application/pdf");
     }
 
     [Fact]
-    public void FromBytes_falls_back_to_octet_stream_for_unknown_extension()
+    public async Task FromBytes_falls_back_to_octet_stream_for_unknown_extension()
     {
         var bytes = new byte[] { 1, 2, 3 };
         var builder = CreateBuilder();
 
-        var attachment = ((AttachmentBuilder)builder
+        var attachment = await ((AttachmentBuilder)builder
             .FromBytes("file.xyz", bytes))
-            .Build();
+            .BuildAsync();
 
         attachment.ContentType.Should().Be("application/octet-stream");
     }
 
     [Fact]
-    public void FromBytes_with_no_extension_falls_back_to_octet_stream()
+    public async Task FromBytes_with_no_extension_falls_back_to_octet_stream()
     {
         var bytes = new byte[] { 1, 2, 3 };
         var builder = CreateBuilder();
 
-        var attachment = ((AttachmentBuilder)builder
+        var attachment = await ((AttachmentBuilder)builder
             .FromBytes("README", bytes))
-            .Build();
+            .BuildAsync();
 
         attachment.ContentType.Should().Be("application/octet-stream");
     }
@@ -68,30 +68,30 @@ public sealed class AttachmentBuilderTests
     // ─── FromStream ────────────────────────────────────────────────────
 
     [Fact]
-    public void FromStream_sets_file_name_and_content()
+    public async Task FromStream_sets_file_name_and_content()
     {
         var stream = new MemoryStream("data"u8.ToArray());
         var builder = CreateBuilder();
 
-        var attachment = ((AttachmentBuilder)builder
+        var attachment = await ((AttachmentBuilder)builder
             .FromStream("image.png", stream))
-            .Build();
+            .BuildAsync();
 
         attachment.FileName.Should().Be("image.png");
-        attachment.Content.Should().BeSameAs(stream);
+        attachment.Content.ToArray().Should().Equal("data"u8.ToArray());
         attachment.ContentType.Should().Be("image/png");
     }
 
     [Fact]
-    public void FromStream_accepts_custom_content_type_via_fluent_override()
+    public async Task FromStream_accepts_custom_content_type_via_fluent_override()
     {
         var stream = new MemoryStream();
         var builder = CreateBuilder();
 
-        var attachment = ((AttachmentBuilder)builder
+        var attachment = await ((AttachmentBuilder)builder
             .FromStream("data.bin", stream)
             .WithContentType("application/octet-stream"))
-            .Build();
+            .BuildAsync();
 
         attachment.ContentType.Should().Be("application/octet-stream");
     }
@@ -99,7 +99,7 @@ public sealed class AttachmentBuilderTests
     // ─── FromFile ──────────────────────────────────────────────────────
 
     [Fact]
-    public void FromFile_detects_mime_type()
+    public async Task FromFile_detects_mime_type()
     {
         // Use a few well-known MIME types
         var builder = CreateBuilder();
@@ -112,9 +112,9 @@ public sealed class AttachmentBuilderTests
         {
             File.WriteAllText(tempFile, "<html></html>");
             var builder2 = CreateBuilder();
-            var attachment = ((AttachmentBuilder)builder2
+            var attachment = await ((AttachmentBuilder)builder2
                 .FromFile(tempFile))
-                .Build();
+                .BuildAsync();
 
             attachment.FileName.Should().Be(Path.GetFileName(tempFile));
             attachment.ContentType.Should().Be("text/html");
@@ -126,16 +126,16 @@ public sealed class AttachmentBuilderTests
     }
 
     [Fact]
-    public void FromFile_falls_back_to_octet_stream_for_unknown_extension()
+    public async Task FromFile_falls_back_to_octet_stream_for_unknown_extension()
     {
         var tempFile = Path.GetTempFileName() + ".unknown";
         try
         {
             File.WriteAllText(tempFile, "test");
             var builder = CreateBuilder();
-            var attachment = ((AttachmentBuilder)builder
+            var attachment = await ((AttachmentBuilder)builder
                 .FromFile(tempFile))
-                .Build();
+                .BuildAsync();
 
             attachment.ContentType.Should().Be("application/octet-stream");
         }
@@ -148,45 +148,45 @@ public sealed class AttachmentBuilderTests
     // ─── AsInlineImage ─────────────────────────────────────────────────
 
     [Fact]
-    public void AsInlineImage_sets_content_id_and_is_inline()
+    public async Task AsInlineImage_sets_content_id_and_is_inline()
     {
         var bytes = new byte[] { 1, 2, 3 };
         var builder = CreateBuilder();
 
-        var attachment = ((AttachmentBuilder)builder
+        var attachment = await ((AttachmentBuilder)builder
             .FromBytes("logo.png", bytes)
             .AsInlineImage("logo@mailvolt"))
-            .Build();
+            .BuildAsync();
 
         attachment.ContentId.Should().Be("logo@mailvolt");
         attachment.IsInline.Should().BeTrue();
     }
 
     [Fact]
-    public void AsInlineImage_defaults_content_type_to_image_png()
+    public async Task AsInlineImage_defaults_content_type_to_image_png()
     {
         var bytes = new byte[] { 1, 2, 3 };
         var builder = CreateBuilder();
 
-        var attachment = ((AttachmentBuilder)builder
+        var attachment = await ((AttachmentBuilder)builder
             .FromBytes("image.unknown", bytes)
             .AsInlineImage("cid@test"))
-            .Build();
+            .BuildAsync();
 
         attachment.ContentType.Should().Be("image/png");
     }
 
     [Fact]
-    public void AsInlineImage_does_not_override_explicit_content_type()
+    public async Task AsInlineImage_does_not_override_explicit_content_type()
     {
         var bytes = new byte[] { 1, 2, 3 };
         var builder = CreateBuilder();
 
-        var attachment = ((AttachmentBuilder)builder
+        var attachment = await ((AttachmentBuilder)builder
             .FromBytes("image.jpg", bytes)
             .AsInlineImage("cid@test")
             .WithContentType("image/jpeg"))
-            .Build();
+            .BuildAsync();
 
         // Explicit WithContentType should take precedence
         attachment.ContentType.Should().Be("image/jpeg");
@@ -196,15 +196,15 @@ public sealed class AttachmentBuilderTests
     // ─── WithContentType ───────────────────────────────────────────────
 
     [Fact]
-    public void WithContentType_overrides_detected_mime()
+    public async Task WithContentType_overrides_detected_mime()
     {
         var bytes = new byte[] { 1, 2, 3 };
         var builder = CreateBuilder();
 
-        var attachment = ((AttachmentBuilder)builder
+        var attachment = await ((AttachmentBuilder)builder
             .FromBytes("doc.pdf", bytes)
             .WithContentType("application/custom"))
-            .Build();
+            .BuildAsync();
 
         attachment.ContentType.Should().Be("application/custom");
     }
@@ -212,15 +212,15 @@ public sealed class AttachmentBuilderTests
     // ─── WithFileName ──────────────────────────────────────────────────
 
     [Fact]
-    public void WithFileName_overrides_file_name()
+    public async Task WithFileName_overrides_file_name()
     {
         var bytes = new byte[] { 1, 2, 3 };
         var builder = CreateBuilder();
 
-        var attachment = ((AttachmentBuilder)builder
+        var attachment = await ((AttachmentBuilder)builder
             .FromBytes("original.txt", bytes)
             .WithFileName("renamed.csv"))
-            .Build();
+            .BuildAsync();
 
         attachment.FileName.Should().Be("renamed.csv");
         // Content type still detected from original file name since it's set before override
@@ -228,7 +228,7 @@ public sealed class AttachmentBuilderTests
     }
 
     [Fact]
-    public void WithFileName_before_content_sets_file_name_for_mime_detection()
+    public async Task WithFileName_before_content_sets_file_name_for_mime_detection()
     {
         var bytes = new byte[] { 1, 2, 3 };
         var builder = CreateBuilder();
@@ -236,10 +236,10 @@ public sealed class AttachmentBuilderTests
         // Since WithFileName is called before FromBytes, the mime detection
         // happens in FromBytes using the fileName parameter, not WithFileName.
         // This test validates the order matters.
-        var attachment = ((AttachmentBuilder)builder
+        var attachment = await ((AttachmentBuilder)builder
             .WithFileName("final.csv")
             .FromBytes("original.txt", bytes))
-            .Build();
+            .BuildAsync();
 
         attachment.FileName.Should().Be("final.csv");
         // FromBytes detects MIME from "original.txt" (its fileName arg), not the overridden name
@@ -247,15 +247,15 @@ public sealed class AttachmentBuilderTests
     }
 
     [Fact]
-    public void WithFileName_after_FromStream_changes_name()
+    public async Task WithFileName_after_FromStream_changes_name()
     {
         var stream = new MemoryStream();
         var builder = CreateBuilder();
 
-        var attachment = ((AttachmentBuilder)builder
+        var attachment = await ((AttachmentBuilder)builder
             .FromStream("image.png", stream)
             .WithFileName("photo.png"))
-            .Build();
+            .BuildAsync();
 
         attachment.FileName.Should().Be("photo.png");
     }
@@ -263,7 +263,7 @@ public sealed class AttachmentBuilderTests
     // ─── Build validation ──────────────────────────────────────────────
 
     [Fact]
-    public void Build_throws_if_file_name_not_set()
+    public async Task Build_throws_if_file_name_not_set()
     {
         var builder = CreateBuilder();
         builder.FromBytes("test.txt", new byte[] { 1 });
@@ -271,21 +271,21 @@ public sealed class AttachmentBuilderTests
         // This should work fine, test when FileName is truly missing
         var builder2 = CreateBuilder();
 
-        var act = () => builder2.Build();
+        var act = () => builder2.BuildAsync();
 
-        act.Should().Throw<InvalidOperationException>()
+        await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*File name must be set*");
     }
 
     [Fact]
-    public void Build_throws_if_content_not_set()
+    public async Task Build_throws_if_content_not_set()
     {
         var builder = CreateBuilder();
         builder.WithFileName("empty.txt");
 
-        var act = () => builder.Build();
+        var act = () => builder.BuildAsync();
 
-        act.Should().Throw<InvalidOperationException>()
+        await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*Content must be set*");
     }
 
@@ -316,14 +316,14 @@ public sealed class AttachmentBuilderTests
     [InlineData("file.zip", "application/zip")]
     [InlineData("file.gz", "application/gzip")]
     [InlineData("file.tar", "application/x-tar")]
-    public void Known_mime_types_are_detected_correctly(string fileName, string expectedMime)
+    public async Task Known_mime_types_are_detected_correctly(string fileName, string expectedMime)
     {
         var bytes = new byte[] { 1, 2, 3 };
         var builder = CreateBuilder();
 
-        var attachment = ((AttachmentBuilder)builder
+        var attachment = await ((AttachmentBuilder)builder
             .FromBytes(fileName, bytes))
-            .Build();
+            .BuildAsync();
 
         attachment.ContentType.Should().Be(expectedMime);
     }

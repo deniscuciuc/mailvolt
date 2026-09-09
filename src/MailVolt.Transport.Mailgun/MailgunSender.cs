@@ -150,7 +150,9 @@ internal sealed class MailgunSender : IMailgunSender
 
         foreach (var attachment in email.Attachments)
         {
-            var streamContent = new StreamContent(attachment.Content);
+            // ByteArrayContent, not StreamContent: the resilience handler can retry this
+            // request, and a stream would already be at its end on the second attempt.
+            var streamContent = new ByteArrayContent(attachment.Content.ToArray());
 
             if (attachment.ContentType is { Length: > 0 })
             {

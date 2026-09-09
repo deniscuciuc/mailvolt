@@ -78,13 +78,13 @@ public sealed class SmtpSender(IOptions<SmtpSenderOptions> options) : ISender
         {
             if (attachment.IsInline)
             {
-                var linked = body.LinkedResources.Add(attachment.FileName, attachment.Content,
-                    ContentType.Parse(attachment.ContentType));
+                var linked = body.LinkedResources.Add(attachment.FileName,
+                    attachment.Content.ToArray(), ContentType.Parse(attachment.ContentType));
                 linked.ContentId = attachment.ContentId;
             }
             else
             {
-                body.Attachments.Add(attachment.FileName, attachment.Content,
+                body.Attachments.Add(attachment.FileName, attachment.Content.ToArray(),
                     ContentType.Parse(attachment.ContentType));
             }
         }

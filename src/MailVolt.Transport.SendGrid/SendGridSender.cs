@@ -140,9 +140,7 @@ internal sealed partial class SendGridSender : ISendGridSender
         {
             foreach (var attachment in email.Attachments)
             {
-                using var memoryStream = new MemoryStream();
-                attachment.Content.CopyTo(memoryStream);
-                var base64Content = Convert.ToBase64String(memoryStream.ToArray());
+                var base64Content = Convert.ToBase64String(attachment.Content.Span);
 
                 message.AddAttachment(
                     attachment.FileName,

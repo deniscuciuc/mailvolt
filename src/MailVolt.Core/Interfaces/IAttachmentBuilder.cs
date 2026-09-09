@@ -29,6 +29,14 @@ public interface IAttachmentBuilder
     IAttachmentBuilder FromBytes(string fileName, byte[] bytes);
 
     /// <summary>
+    /// Sets the attachment content from a block of memory, without copying it.
+    /// </summary>
+    /// <param name="fileName">The file name to present to the recipient.</param>
+    /// <param name="content">The attachment content.</param>
+    /// <returns>The same builder, for chaining.</returns>
+    IAttachmentBuilder FromMemory(string fileName, ReadOnlyMemory<byte> content);
+
+    /// <summary>
     /// Marks the attachment as an inline image with the specified content identifier.
     /// </summary>
     /// <param name="contentId">The content ID (e.g. "logo@mailvolt").</param>
