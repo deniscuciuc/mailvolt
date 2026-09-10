@@ -1,3 +1,5 @@
+![MailVolt](https://raw.githubusercontent.com/deniscuciuc/mailvolt/main/assets/banner.png)
+
 # MailVolt.Core
 
 Core abstractions and fluent builder for MailVolt — modern .NET email library.

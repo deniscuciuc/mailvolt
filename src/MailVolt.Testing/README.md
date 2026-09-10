@@ -1,3 +1,5 @@
+![MailVolt](https://raw.githubusercontent.com/deniscuciuc/mailvolt/main/assets/banner.png)
+
 # MailVolt.Testing
 
 Testing utilities for MailVolt — InMemorySender, assertions, and test helpers.

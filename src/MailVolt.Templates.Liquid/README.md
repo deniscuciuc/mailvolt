@@ -1,3 +1,5 @@
+![MailVolt](https://raw.githubusercontent.com/deniscuciuc/mailvolt/main/assets/banner.png)
+
 # MailVolt.Templates.Liquid
 
 Liquid template rendering for MailVolt using Fluid.Core.

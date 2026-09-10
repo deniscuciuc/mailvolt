@@ -1,3 +1,5 @@
+![MailVolt](https://raw.githubusercontent.com/deniscuciuc/mailvolt/main/assets/banner.png)
+
 # MailVolt.AutoConfigure
 
 Zero-code configuration for MailVolt. Configure transport and templates entirely via appsettings.json — one line in Program.cs.
