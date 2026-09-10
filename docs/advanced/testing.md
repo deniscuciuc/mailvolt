@@ -88,7 +88,7 @@ Assert.True(result.IsFailure);
 Assert.Equal("Custom error", result.Error);
 ```
 
-## FluentAssertions Extensions
+## Assertion extensions
 
 The package includes custom assertions for `InMemorySender`:
 

@@ -37,6 +37,7 @@
     <Project Path="tests/MailVolt.Core.Tests/MailVolt.Core.Tests.csproj" />
     <Project Path="tests/MailVolt.Integration.Tests/MailVolt.Integration.Tests.csproj" />
     <Project Path="tests/MailVolt.Testing.Tests/MailVolt.Testing.Tests.csproj" />
+    <Project Path="tests/MailVolt.Docs.Snippets/MailVolt.Docs.Snippets.csproj" />
     <Project Path="tests/MailVolt.Templates.Tests/MailVolt.Templates.Tests.csproj" />
     <Project Path="tests/MailVolt.Transport.Tests/MailVolt.Transport.Tests.csproj" />
   </Folder>

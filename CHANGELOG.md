@@ -35,9 +35,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed `.editorconfig` to recommend file-scoped namespaces, matching the codebase.
 - Updated `SECURITY.md` supported-versions table to reflect the current pre-1.0 state.
-
-### Fixed
-
 - Fixed NuGet symbol package publishing by including `.snupkg` files in the release artifact.
 - Corrected `docs/release.md` workflow filename reference for NuGet Trusted Publishing setup.
 
@@ -51,3 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Templates: Razor, Liquid, Handlebars.
 - `MailVolt.AutoConfigure` for zero-code `appsettings.json` setup.
 - `MailVolt.Testing` with `InMemorySender`, `FailingSender`, and FluentAssertions extensions.
+
+[Unreleased]: https://github.com/deniscuciuc/mailvolt/compare/v0.1.0-preview.3...HEAD
+[0.1.0-preview.3]: https://github.com/deniscuciuc/mailvolt/compare/v0.1.0-preview.2...v0.1.0-preview.3
+[0.1.0-preview.2]: https://github.com/deniscuciuc/mailvolt/compare/v0.1.0-preview.1...v0.1.0-preview.2
+[0.1.0-preview.1]: https://github.com/deniscuciuc/mailvolt/releases/tag/v0.1.0-preview.1
