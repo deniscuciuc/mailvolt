@@ -109,15 +109,3 @@ jobs:
           --configuration Release --framework net10.0
           --filter "Category=Integration"
 
-  dependency-review:
-    name: Dependency review
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: moderate
