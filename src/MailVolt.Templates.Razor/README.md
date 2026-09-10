@@ -1,3 +1,5 @@
+![MailVolt](https://raw.githubusercontent.com/deniscuciuc/mailvolt/main/assets/banner.png)
+
 # MailVolt.Templates.Razor
 
 Razor template rendering for MailVolt using native ASP.NET Core Razor.

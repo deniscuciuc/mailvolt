@@ -1,3 +1,5 @@
+![MailVolt](https://raw.githubusercontent.com/deniscuciuc/mailvolt/main/assets/banner.png)
+
 # MailVolt.Transport.Brevo
 
 Brevo (formerly Sendinblue) transport for MailVolt.

@@ -1,3 +1,5 @@
+![MailVolt](https://raw.githubusercontent.com/deniscuciuc/mailvolt/main/assets/banner.png)
+
 # MailVolt
 
 [![CI](https://github.com/deniscuciuc/mailvolt/actions/workflows/ci.yml/badge.svg)](https://github.com/deniscuciuc/mailvolt/actions/workflows/ci.yml)

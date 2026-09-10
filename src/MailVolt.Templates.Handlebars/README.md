@@ -1,3 +1,5 @@
+![MailVolt](https://raw.githubusercontent.com/deniscuciuc/mailvolt/main/assets/banner.png)
+
 # MailVolt.Templates.Handlebars
 
 Handlebars template rendering for MailVolt using Handlebars.Net.

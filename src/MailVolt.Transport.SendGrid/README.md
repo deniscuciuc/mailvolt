@@ -1,3 +1,5 @@
+![MailVolt](https://raw.githubusercontent.com/deniscuciuc/mailvolt/main/assets/banner.png)
+
 # MailVolt.Transport.SendGrid
 
 SendGrid transport for MailVolt.

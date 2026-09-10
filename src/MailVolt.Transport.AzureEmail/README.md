@@ -1,3 +1,5 @@
+![MailVolt](https://raw.githubusercontent.com/deniscuciuc/mailvolt/main/assets/banner.png)
+
 # MailVolt.Transport.AzureEmail
 
 Azure Email Communication Services transport for MailVolt.
