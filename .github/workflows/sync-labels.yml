@@ -14,7 +14,7 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # Previously used micnncim/action-label-syncer@v1, an unmaintained third-party action
       # running unpinned with issues: write. gh is already on the runner.
