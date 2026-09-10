@@ -2,7 +2,6 @@ using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
 using MailVolt.Core.Models;
 using MailVolt.Transport.Brevo;
-using MailVolt.Transport.Brevo.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using brevo_csharp.Api;
@@ -43,7 +42,7 @@ public sealed class BrevoSenderTests
         var services = new ServiceCollection();
         var builder = new MailVoltBuilder(services);
 
-        builder.AddBrevoSender(opts =>
+        builder.UseBrevoTransport(opts =>
         {
             opts.ApiKey = "brevo-key";
         });
@@ -70,7 +69,7 @@ public sealed class BrevoSenderTests
             })
             .Build();
 
-        builder.AddBrevoSender(config);
+        builder.UseBrevoTransport(config);
 
         var provider = services.BuildServiceProvider();
         var sender = provider.GetService<ISender>();

@@ -2,12 +2,11 @@
   <PropertyGroup>
     <PackageId>MailVolt.Testing</PackageId>
 
-    <Description>Testing utilities for MailVolt — InMemorySender, assertions, and test helpers</Description>
-    <NoWarn>CS1591</NoWarn>
+    <Description>Assertion helpers for MailVolt — AwesomeAssertions extensions for InMemorySender</Description>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="AwesomeAssertions" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MailVolt.Core\MailVolt.Core.csproj" />

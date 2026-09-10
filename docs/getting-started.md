@@ -72,7 +72,7 @@ dotnet add package MailVolt.Transport.SendGrid
 
 ```csharp
 builder.Services.AddMailVolt()
-    .AddSendGridSender(options =>
+    .UseSendGridTransport(options =>
     {
         options.ApiKey = "SG.your-api-key";
     });
@@ -157,7 +157,7 @@ Create a configuration section and bind it:
 ```csharp
 builder.Services.AddMailVolt()
     .UseSmtpTransport(
-        builder.Configuration.GetSection("MailVolt:Smtp"));
+        builder.Configuration);
 ```
 
 ## Next Steps

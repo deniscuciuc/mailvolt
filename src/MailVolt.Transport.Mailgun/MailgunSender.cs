@@ -50,15 +50,19 @@ internal sealed class MailgunSender : IMailgunSender
     /// <inheritdoc />
     public async Task<EmailResult> SendAsync(EmailMessage email, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(email);
+
         try
         {
-            var content = BuildMultipartContent(email);
-            var response = await _httpClient.PostAsync(
+            // MultipartFormDataContent owns every part added to it, so disposing it here
+            // releases them all. Nothing disposed either of these before.
+            using var content = BuildMultipartContent(email);
+            using var response = await _httpClient.PostAsync(
                 $"{_options.Domain}/messages",
                 content,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
-            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -81,6 +85,10 @@ internal sealed class MailgunSender : IMailgunSender
         }
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "Each part is owned by the returned MultipartFormDataContent, which the caller disposes.")]
     private MultipartFormDataContent BuildMultipartContent(EmailMessage email)
     {
         var content = new MultipartFormDataContent();
@@ -150,7 +158,9 @@ internal sealed class MailgunSender : IMailgunSender
 
         foreach (var attachment in email.Attachments)
         {
-            var streamContent = new StreamContent(attachment.Content);
+            // ByteArrayContent, not StreamContent: the resilience handler can retry this
+            // request, and a stream would already be at its end on the second attempt.
+            var streamContent = new ByteArrayContent(attachment.Content.ToArray());
 
             if (attachment.ContentType is { Length: > 0 })
             {
@@ -191,6 +201,10 @@ internal sealed class MailgunSender : IMailgunSender
             $"'{NativeTemplateVariablesHeaderName}' requires '{NativeTemplateHeaderName}' when native templates are enabled.");
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "Each part is owned by the MultipartFormDataContent it is added to.")]
     private static void AddAddresses(MultipartFormDataContent content, string fieldName,
         IReadOnlyList<EmailAddress> addresses)
     {

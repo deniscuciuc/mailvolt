@@ -8,11 +8,52 @@ indent_size = 4
 trim_trailing_whitespace = true
 insert_final_newline = true
 
-[*.{csproj,props,targets}]
+[*.{csproj,props,targets,json,yml,yaml}]
 indent_size = 2
-
-# IDE0160: Convert to file scoped namespace
-csharp_style_namespace_declarations = file_scoped:warning
 
 [*.md]
 trim_trailing_whitespace = false
+
+[*.cs]
+# IDE0160: the codebase uses file-scoped namespaces throughout.
+csharp_style_namespace_declarations = file_scoped:warning
+
+# --- Rules this library deliberately enforces -------------------------------
+# A library must not capture the caller's SynchronizationContext: an app with
+# one (WPF, WinForms, legacy ASP.NET) can otherwise deadlock on a send.
+dotnet_diagnostic.CA2007.severity = warning
+# Public entry points must validate their arguments rather than surfacing a
+# NullReferenceException from somewhere deep in the builder.
+dotnet_diagnostic.CA1062.severity = warning
+# Disposables must be owned and released properly — attachments in particular.
+dotnet_diagnostic.CA1001.severity = warning
+dotnet_diagnostic.CA2000.severity = warning
+dotnet_diagnostic.CA1063.severity = warning
+
+# --- Rules that fight deliberate API choices -------------------------------
+# CA1716 wants IEmailBuilder.To and the `template` parameter renamed because
+# they collide with VB keywords. `.To(...)` is the entire point of a fluent
+# email API and renaming it would make the library worse, not more portable.
+dotnet_diagnostic.CA1716.severity = none
+# High-performance logging matters at far higher volumes than an email send.
+dotnet_diagnostic.CA1848.severity = suggestion
+# CA1873 flags log arguments it thinks are expensive, but the values it points at are
+# also the method's return value, so they are computed either way.
+dotnet_diagnostic.CA1873.severity = suggestion
+
+[{tests,examples}/**/*.cs]
+# xUnit method names are Method_Should_When, which CA1707 objects to.
+dotnet_diagnostic.CA1707.severity = none
+# Top-level programs and test fixtures do not need namespaces.
+dotnet_diagnostic.CA1050.severity = none
+# Test and example code is not a shipped API surface.
+dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.CA1062.severity = none
+dotnet_diagnostic.CA1873.severity = none
+dotnet_diagnostic.CA1725.severity = none
+# Test code creates HttpClients and HTTP content it deliberately does not dispose.
+dotnet_diagnostic.CA2000.severity = none
+# The fixture releases its HttpClient from IAsyncLifetime.DisposeAsync, which CA1001
+# does not recognise. "Collection" is xUnit's required suffix for a collection definition.
+dotnet_diagnostic.CA1001.severity = none
+dotnet_diagnostic.CA1711.severity = none

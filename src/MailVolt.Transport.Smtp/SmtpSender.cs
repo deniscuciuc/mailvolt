@@ -13,39 +13,51 @@ public sealed class SmtpSender(IOptions<SmtpSenderOptions> options) : ISender
 
     public async Task<EmailResult> SendAsync(EmailMessage email, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(email);
+
         try
         {
             using var client = new SmtpClient
             {
                 Timeout = _options.TimeoutMs
             };
-            var message = BuildMimeMessage(email);
+            using var message = BuildMimeMessage(email);
 
-            await client.ConnectAsync(_options.Host, _options.Port, _options.Security, cancellationToken);
+            await client.ConnectAsync(_options.Host, _options.Port, _options.Security, cancellationToken).ConfigureAwait(false);
 
             if (_options.OAuth2TokenProvider is not null)
             {
-                var token = await _options.OAuth2TokenProvider(cancellationToken);
+                var token = await _options.OAuth2TokenProvider(cancellationToken).ConfigureAwait(false);
                 await client.AuthenticateAsync(new SaslMechanismOAuth2(_options.Username ?? string.Empty, token),
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
             else if (_options.Username is not null && _options.Password is not null)
             {
-                await client.AuthenticateAsync(_options.Username, _options.Password, cancellationToken);
+                await client.AuthenticateAsync(_options.Username, _options.Password, cancellationToken).ConfigureAwait(false);
             }
 
-            var response = await client.SendAsync(message, cancellationToken);
-            await client.DisconnectAsync(true, cancellationToken);
+            var response = await client.SendAsync(message, cancellationToken).ConfigureAwait(false);
+            await client.DisconnectAsync(true, cancellationToken).ConfigureAwait(false);
 
             return EmailResult.Success(response);
         }
-        catch (Exception ex)
+        // Cancellation propagates rather than becoming a send failure: every MailVolt
+        // transport behaves the same way, so swapping providers does not change how a
+        // cancelled send is observed.
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return EmailResult.Failure($"SMTP send failed: {ex.Message}", ex);
         }
     }
 
-    private static MimeMessage BuildMimeMessage(EmailMessage email)
+    /// <summary>
+    /// Maps an <see cref="EmailMessage"/> onto a MimeKit <see cref="MimeMessage"/>.
+    /// </summary>
+    /// <remarks>
+    /// Internal rather than private so the mapping can be unit tested without a live SMTP
+    /// server, matching the seam the SendGrid and Mailgun transports expose.
+    /// </remarks>
+    internal static MimeMessage BuildMimeMessage(EmailMessage email)
     {
         var message = new MimeMessage();
 
@@ -78,13 +90,13 @@ public sealed class SmtpSender(IOptions<SmtpSenderOptions> options) : ISender
         {
             if (attachment.IsInline)
             {
-                var linked = body.LinkedResources.Add(attachment.FileName, attachment.Content,
-                    ContentType.Parse(attachment.ContentType));
+                var linked = body.LinkedResources.Add(attachment.FileName,
+                    attachment.Content.ToArray(), ContentType.Parse(attachment.ContentType));
                 linked.ContentId = attachment.ContentId;
             }
             else
             {
-                body.Attachments.Add(attachment.FileName, attachment.Content,
+                body.Attachments.Add(attachment.FileName, attachment.Content.ToArray(),
                     ContentType.Parse(attachment.ContentType));
             }
         }

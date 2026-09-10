@@ -5,6 +5,7 @@ using MailVolt.Testing;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using Xunit;
+using MailVolt.Core.Transports;
 
 namespace MailVolt.Core.Tests;
 
@@ -393,8 +394,9 @@ public sealed class EmailBuilderTests
     }
 
     [Fact]
-    public async Task UsingTemplate_with_no_renderer_does_not_throw()
+    public async Task UsingTemplate_with_no_renderer_throws()
     {
+        // Previously the template was skipped in silence and a body-less email was sent.
         var builder = CreateBuilder(templateRenderer: null);
         builder.From("from@example.com")
             .To("to@example.com")
@@ -403,7 +405,23 @@ public sealed class EmailBuilderTests
 
         var act = () => builder.BuildAsync();
 
-        await act.Should().NotThrowAsync();
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*no ITemplateRenderer is registered*");
+    }
+
+    [Fact]
+    public async Task UsingTemplate_with_a_null_model_throws()
+    {
+        var builder = CreateBuilder(templateRenderer: Substitute.For<ITemplateRenderer>());
+        builder.From("from@example.com")
+            .To("to@example.com")
+            .Subject("NoModel")
+            .UsingTemplate<object?>("Hello", null);
+
+        var act = () => builder.BuildAsync();
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*without a model*");
     }
 
     // ─── Attach ────────────────────────────────────────────────────────

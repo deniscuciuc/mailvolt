@@ -4,6 +4,7 @@ using MailVolt.Core.Models;
 using MailVolt.Testing;
 using NSubstitute;
 using Xunit;
+using MailVolt.Core.Transports;
 
 namespace MailVolt.Core.Tests;
 

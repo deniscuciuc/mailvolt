@@ -1,12 +1,5 @@
 using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
-using MailVolt.Transport.Smtp.DependencyInjection;
-using MailVolt.Transport.Mailgun.DependencyInjection;
-using MailVolt.Transport.SendGrid.DependencyInjection;
-using MailVolt.Transport.Resend.DependencyInjection;
-using MailVolt.Transport.AzureEmail.DependencyInjection;
-using MailVolt.Transport.Brevo.DependencyInjection;
-using MailVolt.Transport.AwsSes.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -57,7 +50,7 @@ public sealed class TransportDiTests
         services.AddLogging();
         var builder = services.AddMailVolt();
 
-        builder.AddSendGridSender(opts =>
+        builder.UseSendGridTransport(opts =>
         {
             opts.ApiKey = "sg-key";
         });
@@ -74,7 +67,7 @@ public sealed class TransportDiTests
         services.AddLogging();
         var builder = services.AddMailVolt();
 
-        builder.UseResend(opts =>
+        builder.UseResendTransport(opts =>
         {
             opts.ApiKey = "resend-key";
         });
@@ -91,7 +84,7 @@ public sealed class TransportDiTests
         services.AddLogging();
         var builder = services.AddMailVolt();
 
-        builder.AddPostmarkSender(opts =>
+        builder.UsePostmarkTransport(opts =>
         {
             opts.ApiKey = "pm-key";
         });
@@ -107,7 +100,7 @@ public sealed class TransportDiTests
         var services = new ServiceCollection();
         var builder = services.AddMailVolt();
 
-        builder.AddAzureEmailSender(opts =>
+        builder.UseAzureEmailTransport(opts =>
         {
             opts.ConnectionString = "endpoint=https://test.communication.azure.com/;accesskey=dGVzdA==";
         });
@@ -123,7 +116,7 @@ public sealed class TransportDiTests
         var services = new ServiceCollection();
         var builder = services.AddMailVolt();
 
-        builder.AddBrevoSender(opts =>
+        builder.UseBrevoTransport(opts =>
         {
             opts.ApiKey = "brevo-key";
         });
@@ -181,17 +174,17 @@ public sealed class TransportDiTests
         // SendGrid with config
         var sendGridServices = new ServiceCollection();
         sendGridServices.AddLogging();
-        sendGridServices.AddMailVolt().AddSendGridSender(config);
+        sendGridServices.AddMailVolt().UseSendGridTransport(config);
         sendGridServices.BuildServiceProvider().GetRequiredService<ISender>().Should().NotBeNull();
 
         // Azure with config
         var azureServices = new ServiceCollection();
-        azureServices.AddMailVolt().AddAzureEmailSender(config);
+        azureServices.AddMailVolt().UseAzureEmailTransport(config);
         azureServices.BuildServiceProvider().GetRequiredService<ISender>().Should().NotBeNull();
 
         // Brevo with config
         var brevoServices = new ServiceCollection();
-        brevoServices.AddMailVolt().AddBrevoSender(config);
+        brevoServices.AddMailVolt().UseBrevoTransport(config);
         brevoServices.BuildServiceProvider().GetRequiredService<ISender>().Should().NotBeNull();
 
         // AwsSes with config

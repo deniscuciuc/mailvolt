@@ -1,7 +1,4 @@
 using MailVolt.Core.DependencyInjection;
-using MailVolt.Testing.DependencyInjection;
-using MailVolt.Templates.Liquid.DependencyInjection;
-using MailVolt.Transport.Smtp.DependencyInjection;
 
 var dryRun = args.Contains("--dry-run");
 

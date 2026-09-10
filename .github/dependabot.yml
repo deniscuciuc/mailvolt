@@ -24,3 +24,28 @@ updates:
       - "dependencies"
     commit-message:
       prefix: "chore(deps)"
+
+  # Without this the actions in every workflow rot silently — the runner already warns that
+  # actions pinned to Node 20 are being forced onto Node 24.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "ci(deps)"
+
+  - package-ecosystem: "docker-compose"
+    directory: "/examples"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"

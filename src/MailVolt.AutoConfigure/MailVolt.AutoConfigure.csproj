@@ -6,7 +6,9 @@
       Zero-code configuration for MailVolt. Configure transport and templates
       entirely via appsettings.json — one line in Program.cs.
     </Description>
-    <NoWarn>CS1591</NoWarn>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- Binds appsettings.json sections reflectively by design. -->
+    <NoWarn>$(NoWarn);IL2026;IL3050</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <!-- All packages bundled — users add only this one -->
@@ -22,9 +24,7 @@
     <ProjectReference Include="../MailVolt.Templates.Razor/MailVolt.Templates.Razor.csproj" />
     <ProjectReference Include="../MailVolt.Templates.Liquid/MailVolt.Templates.Liquid.csproj" />
     <ProjectReference Include="../MailVolt.Templates.Handlebars/MailVolt.Templates.Handlebars.csproj" />
-    <ProjectReference Include="../MailVolt.Testing/MailVolt.Testing.csproj" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
   </ItemGroup>
 </Project>

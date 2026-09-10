@@ -38,7 +38,7 @@ public sealed class EmailMessageTests
             new()
             {
                 FileName = "doc.pdf",
-                Content = new MemoryStream(),
+                Content = ReadOnlyMemory<byte>.Empty,
                 ContentType = "application/pdf",
             },
         }.AsReadOnly();

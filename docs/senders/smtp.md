@@ -27,7 +27,7 @@ You can also bind from configuration:
 ```csharp
 builder.Services.AddMailVolt()
     .UseSmtpTransport(
-        builder.Configuration.GetSection("MailVolt:Smtp"));
+        builder.Configuration);
 ```
 
 ## Options

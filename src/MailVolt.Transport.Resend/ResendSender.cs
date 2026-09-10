@@ -132,13 +132,10 @@ internal sealed class ResendSender : IResendSender
         var attachments = new List<ResendEmailAttachment>();
         foreach (var attachment in email.Attachments)
         {
-            using var memoryStream = new MemoryStream();
-            attachment.Content.CopyTo(memoryStream);
-
             attachments.Add(new ResendEmailAttachment
             {
                 Filename = attachment.FileName,
-                Content = Convert.ToBase64String(memoryStream.ToArray()),
+                Content = Convert.ToBase64String(attachment.Content.Span),
                 ContentType = attachment.ContentType,
                 ContentId = attachment.ContentId,
             });

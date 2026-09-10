@@ -21,7 +21,7 @@ mailvolt/
 ├── src/                            # Packable library projects
 │   ├── MailVolt.Core/              # Abstractions, models, fluent builder, batch sender, DI extensions
 │   ├── MailVolt.AutoConfigure/     # Zero-code configuration from IConfiguration
-│   ├── MailVolt.Testing/           # InMemorySender, FailingSender, FluentAssertions extensions
+│   ├── MailVolt.Testing/           # InMemorySender, FailingSender, AwesomeAssertions extensions
 │   ├── MailVolt.Transport.*        # One project per provider (Smtp, SendGrid, Mailgun, Resend, Postmark, AzureEmail, Brevo, AwsSes)
 │   └── MailVolt.Templates.*        # Razor, Liquid, Handlebars renderers
 ├── tests/                          # Unit / integration test projects
@@ -29,7 +29,7 @@ mailvolt/
 │   ├── MailVolt.Transport.Tests/
 │   ├── MailVolt.Templates.Tests/
 │   ├── MailVolt.AutoConfigure.Tests/
-│   └── MailVolt.Integration.Tests/ # Currently empty placeholder
+│   └── MailVolt.Integration.Tests/ # Testcontainers + Mailpit SMTP tests (needs Docker)
 ├── examples/                       # Standalone runnable samples
 │   ├── 01-console-smtp-razor/
 │   ├── 02-console-sendgrid-liquid/
@@ -49,12 +49,12 @@ mailvolt/
 - **Nullable reference types** and **implicit usings** enabled globally.
 - **Build system:** MSBuild / `dotnet` CLI, Central Package Management via `Directory.Packages.props`.
 - **Core dependencies:**
-  - `Microsoft.Extensions.*` (DI, Options, Configuration, Logging, Http, Hosting) v10.0.0
+  - `Microsoft.Extensions.*` 10.0.9
   - `MailKit` / `MimeKit` 4.17.0 (SMTP transport)
-  - `Microsoft.Extensions.Http.Resilience` 9.0.0 (HTTP transports)
+  - `Microsoft.Extensions.Http.Resilience` 10.7.0 (HTTP transports)
   - Provider SDKs: `Azure.Communication.Email`, `AWSSDK.SimpleEmailV2`, `brevo_csharp`, `Postmark`, `Resend`, `SendGrid`, `SendGrid.Extensions.DependencyInjection`
 - **Template engines:** `Fluid.Core` (Liquid), `Handlebars.Net`, native ASP.NET Core Razor (`Microsoft.AspNetCore.App` framework reference).
-- **Testing:** xUnit 2.9.3, NSubstitute 5.3.0, FluentAssertions 8.2.0, coverlet.collector 6.0.4.
+- **Testing:** xUnit 2.9.3, NSubstitute 5.3.0, AwesomeAssertions 9.4.0, coverlet.collector 10.0.1.
 - **Source linking:** `Microsoft.SourceLink.GitHub` is referenced in all packable projects.
 
 ## Build, Test, and Pack Commands
@@ -116,8 +116,8 @@ Each transport project:
 
 - Implements `ISender` (often named `*Sender`).
 - Defines its own options class (e.g., `SmtpSenderOptions`).
-- Provides DI extension methods on `MailVoltBuilder` (e.g., `UseSmtpTransport`, `AddSendGridSender`).
-- HTTP-based transports use typed `HttpClient` instances registered with `AddStandardResilienceHandler()` from `Microsoft.Extensions.Http.Resilience`.
+- Provides DI extension methods on `MailVoltBuilder` (e.g., `UseSmtpTransport`, `UseSendGridTransport`).
+- Mailgun, Resend and SendGrid use typed `HttpClient` instances with `AddStandardResilienceHandler()`; Postmark, Brevo, Azure and AWS SES rely on their vendor SDK retry policies from `Microsoft.Extensions.Http.Resilience`.
 
 ### Templates (`MailVolt.Templates.*`)
 
@@ -137,7 +137,7 @@ This reads the `MailVolt` configuration section, binds `MailVoltAutoOptions`, an
 
 - `InMemorySender` — singleton-captured `ISender` for assertions.
 - `FailingSender` — deterministic failure generator.
-- `InMemorySenderAssertions` — custom FluentAssertions extension methods (`HaveCount`, `ContainEmailTo`, `ContainSubject`, etc.).
+- `InMemorySenderAssertions` — custom AwesomeAssertions extension methods (`HaveCount`, `ContainEmailTo`, `ContainSubject`, etc.).
 - `DependencyInjection/TestingExtensions.cs` — `UseInMemoryTransport()`.
 
 ## Code Style Guidelines
@@ -148,7 +148,7 @@ Style is enforced by `.editorconfig` and by MSBuild (`TreatWarningsAsErrors=true
 - **Nullable reference types** enabled; use `ArgumentNullException.ThrowIfNull(...)` for guards.
 - **Implicit usings** enabled; avoid redundant `using` directives.
 - **Namespaces:** file-scoped (`namespace Foo.Bar;`).
-  - Note: `.editorconfig` currently sets `csharp_style_namespace_declarations = block_scoped`, but the existing codebase uses file-scoped namespaces. Follow the existing code.
+  - Note: `.editorconfig` sets `csharp_style_namespace_declarations = file_scoped:warning`, but the existing codebase uses file-scoped namespaces. Follow the existing code.
 - **Formatting:** 4-space indentation for `.cs` files, 2-space for `.csproj`/`.props`/`.targets`, LF line endings, UTF-8, trim trailing whitespace, final newline.
 - **Constructors:** prefer primary constructors for simple DI scenarios.
 - **Collections in public APIs:** favor `IReadOnlyList<T>`, `IReadOnlyDictionary<TKey,TValue>`, or `ImmutableArray<T>` over mutable types.
@@ -156,17 +156,17 @@ Style is enforced by `.editorconfig` and by MSBuild (`TreatWarningsAsErrors=true
 - **Regions:** do not use `#region` blocks.
 - **Documentation:** all public types and members must have XML doc comments; `GenerateDocumentationFile` is true. Packable projects suppress `CS1591` to avoid missing-comment warnings on `Program` classes in examples.
 - **Async:** all I/O-bound public APIs must be async. Do not introduce sync-over-async.
-- **Warnings:** zero warnings in production code. Specific suppressed warnings are configured in `Directory.Build.props` (`NU1902`, `NU1903`, `NU1506`, `IL2026`, `IL3050`).
+- **Warnings:** zero warnings in production code. The only repo-wide suppression is `NU1506` in `Directory.Build.props`; `IL2026`/`IL3050` are scoped to `MailVolt.Core` and `MailVolt.AutoConfigure`. NuGet vulnerability warnings (`NU1902`/`NU1903`) are deliberately **not** suppressed and fail the build.
 
 ## Testing Strategy
 
-- **Framework:** xUnit with FluentAssertions and NSubstitute.
+- **Framework:** xUnit with AwesomeAssertions and NSubstitute.
 - **Test projects:**
   - `MailVolt.Core.Tests` — builder validation, batch sender behavior, models, DI registration.
   - `MailVolt.Transport.Tests` — DI registration, request/response mapping, attachment handling for each transport using stubbed `HttpMessageHandler` where applicable.
   - `MailVolt.Templates.Tests` — rendering output for Razor, Liquid, and Handlebars.
   - `MailVolt.AutoConfigure.Tests` — configuration binding and wiring logic.
-  - `MailVolt.Integration.Tests` — placeholder project for live-service tests requiring credentials.
+  - `MailVolt.Integration.Tests` — Testcontainers-based SMTP tests against Mailpit; needs Docker, not credentials.
 - **Integration tests:** tests that require real provider credentials must be decorated with `[Trait("Category", "Integration")]`. They are excluded from CI and normal local runs via `--filter "Category!=Integration"`.
 - **Coverage:** CI collects coverage with coverlet and uploads to Codecov.
 - **Test helpers:** use `InMemorySender` and `FailingSender` from `MailVolt.Testing`; use the `Helpers` static class in `MailVolt.Transport.Tests` for common stubs and test email factories.

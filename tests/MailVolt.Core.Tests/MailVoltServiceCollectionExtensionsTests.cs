@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Xunit;
+using MailVolt.Core.Transports;
 
 namespace MailVolt.Core.Tests;
 
@@ -22,7 +23,7 @@ public sealed class MailVoltServiceCollectionExtensionsTests
         var descriptor = services.SingleOrDefault(s => s.ServiceType == typeof(IEmailBuilder));
         descriptor.Should().NotBeNull();
         descriptor!.Lifetime.Should().Be(ServiceLifetime.Transient);
-        descriptor.ImplementationType.Should().Be(typeof(EmailBuilder));
+        descriptor.ImplementationType.Should().Be<EmailBuilder>();
     }
 
     [Fact]
@@ -35,7 +36,7 @@ public sealed class MailVoltServiceCollectionExtensionsTests
         var descriptor = services.SingleOrDefault(s => s.ServiceType == typeof(IBatchEmailSender));
         descriptor.Should().NotBeNull();
         descriptor!.Lifetime.Should().Be(ServiceLifetime.Transient);
-        descriptor.ImplementationType.Should().Be(typeof(BatchEmailSender));
+        descriptor.ImplementationType.Should().Be<BatchEmailSender>();
     }
 
     [Fact]

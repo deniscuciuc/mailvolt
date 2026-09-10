@@ -1,15 +1,4 @@
 using MailVolt.Core.DependencyInjection;
-using MailVolt.Testing.DependencyInjection;
-using MailVolt.Templates.Handlebars.DependencyInjection;
-using MailVolt.Templates.Liquid.DependencyInjection;
-using MailVolt.Templates.Razor.DependencyInjection;
-using MailVolt.Transport.AwsSes.DependencyInjection;
-using MailVolt.Transport.AzureEmail.DependencyInjection;
-using MailVolt.Transport.Brevo.DependencyInjection;
-using MailVolt.Transport.Mailgun.DependencyInjection;
-using MailVolt.Transport.Resend.DependencyInjection;
-using MailVolt.Transport.SendGrid.DependencyInjection;
-using MailVolt.Transport.Smtp.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -33,6 +22,10 @@ public static class MailVoltAutoConfigureExtensions
         IConfiguration configuration,
         string sectionName = "MailVolt")
     {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sectionName);
+
         var section = configuration.GetSection(sectionName);
         if (!section.Exists())
         {
@@ -78,7 +71,7 @@ public static class MailVoltAutoConfigureExtensions
                 break;
             case MailVoltTransport.SendGrid:
                 RequireSection(section, "SendGrid");
-                builder.AddSendGridSender(o => section.GetSection("SendGrid").Bind(o));
+                builder.UseSendGridTransport(o => section.GetSection("SendGrid").Bind(o));
                 break;
             case MailVoltTransport.Mailgun:
                 RequireSection(section, "Mailgun");
@@ -86,19 +79,19 @@ public static class MailVoltAutoConfigureExtensions
                 break;
             case MailVoltTransport.Resend:
                 RequireSection(section, "Resend");
-                builder.UseResend(o => section.GetSection("Resend").Bind(o));
+                builder.UseResendTransport(o => section.GetSection("Resend").Bind(o));
                 break;
             case MailVoltTransport.Postmark:
                 RequireSection(section, "Postmark");
-                builder.AddPostmarkSender(o => section.GetSection("Postmark").Bind(o));
+                builder.UsePostmarkTransport(o => section.GetSection("Postmark").Bind(o));
                 break;
             case MailVoltTransport.Azure:
                 RequireSection(section, "Azure");
-                builder.AddAzureEmailSender(o => section.GetSection("Azure").Bind(o));
+                builder.UseAzureEmailTransport(o => section.GetSection("Azure").Bind(o));
                 break;
             case MailVoltTransport.Brevo:
                 RequireSection(section, "Brevo");
-                builder.AddBrevoSender(o => section.GetSection("Brevo").Bind(o));
+                builder.UseBrevoTransport(o => section.GetSection("Brevo").Bind(o));
                 break;
             case MailVoltTransport.AwsSes:
                 RequireSection(section, "AwsSes");

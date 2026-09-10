@@ -102,44 +102,116 @@ Transports are the pluggable email providers in MailVolt. To add a new one:
    dotnet new classlib -o src/MailVolt.Transport.YourProvider -n MailVolt.Transport.YourProvider
    ```
 
-2. **Add to solution:** Edit `MailVolt.slnx` and add the project under `Folder Name="/src/"`.
+2. **Add to the solution:** edit `MailVolt.slnx` and add the project under
+   `Folder Name="/src/"`. Add a `README.md` next to the `.csproj` — each package ships its own.
 
-3. **Inherit from `IEmailTransport`:**
+3. **Implement `ISender`:**
 
    ```csharp
-   using MailVolt.Core.Abstractions;
+   using MailVolt.Core.Interfaces;
+   using MailVolt.Core.Models;
+   using Microsoft.Extensions.Options;
 
-   public sealed class YourProviderTransport(IOptions<YourProviderOptions> options)
-       : IEmailTransport
+   namespace MailVolt.Transport.YourProvider;
+
+   public sealed class YourProviderSender(IOptions<YourProviderSenderOptions> options) : ISender
    {
-       public async Task<SendEmailResult> SendAsync(
-           Email email,
+       private readonly YourProviderSenderOptions _options = options.Value;
+
+       public async Task<EmailResult> SendAsync(
+           EmailMessage email,
            CancellationToken cancellationToken = default)
        {
-           // Your implementation
+           ArgumentNullException.ThrowIfNull(email);
+
+           try
+           {
+               var request = MapToProviderRequest(email);
+               // ... send ...
+               return EmailResult.Success(messageId);
+           }
+           // Cancellation must propagate, not become a failed result — every transport
+           // behaves the same way so swapping providers changes nothing observable.
+           catch (Exception ex) when (ex is not OperationCanceledException)
+           {
+               return EmailResult.Failure(ex.Message, ex);
+           }
        }
+
+       // Internal rather than private, so the mapping is unit testable without calling
+       // the provider. Every existing transport exposes this seam.
+       internal static ProviderRequest MapToProviderRequest(EmailMessage email) { /* ... */ }
    }
    ```
 
-4. **Create extension method for DI registration:**
+   Requirements the existing transports all meet, and that tests check:
+
+   - `ConfigureAwait(false)` on every `await` (CA2007 enforces this).
+   - Map `From`, `To`, `Cc`, `Bcc`, **`ReplyTo`**, `Subject`, both bodies, `Headers`, `Tags`
+     and `Priority`.
+   - Handle `EmailAttachment.IsInline` as the provider's inline mechanism, not as an ordinary
+     attachment, so a `cid:` reference resolves.
+   - Do not log or return raw provider response bodies containing credentials.
+
+4. **Add an options class** with a `SectionName` constant of `"MailVolt:YourProvider"`.
+
+5. **Add the DI extension** in `MailVolt.Core.DependencyInjection` — all registration methods
+   share that namespace so one `using` covers everything — named
+   `UseYourProviderTransport`:
 
    ```csharp
-   public static class MailVoltBuilderExtensions
+   using MailVolt.Core.Interfaces;
+   using MailVolt.Transport.YourProvider;
+   using Microsoft.Extensions.Configuration;
+   using Microsoft.Extensions.DependencyInjection;
+
+   // ReSharper disable once CheckNamespace
+   namespace MailVolt.Core.DependencyInjection;
+
+   public static class YourProviderTransportExtensions
    {
-       public static MailVoltBuilder UseYourProvider(
+       public static MailVoltBuilder UseYourProviderTransport(
            this MailVoltBuilder builder,
-           Action<YourProviderOptions> configure)
+           Action<YourProviderSenderOptions> configure)
        {
+           ArgumentNullException.ThrowIfNull(builder);
+           ArgumentNullException.ThrowIfNull(configure);
+
            builder.Services.Configure(configure);
-           builder.Services.AddSingleton<IEmailTransport, YourProviderTransport>();
+           builder.Services.AddTransient<ISender, YourProviderSender>();
+           return builder;
+       }
+
+       public static MailVoltBuilder UseYourProviderTransport(
+           this MailVoltBuilder builder,
+           IConfiguration configuration)
+       {
+           ArgumentNullException.ThrowIfNull(builder);
+           ArgumentNullException.ThrowIfNull(configuration);
+
+           // Takes the configuration root and resolves its own section, so the section name
+           // lives in exactly one place. Do not accept a pre-scoped IConfigurationSection.
+           builder.Services.Configure<YourProviderSenderOptions>(
+               configuration.GetSection(YourProviderSenderOptions.SectionName));
+           builder.Services.AddTransient<ISender, YourProviderSender>();
            return builder;
        }
    }
    ```
 
-5. **Add tests:** Create unit tests in `tests/MailVolt.Transport.Tests/` that mock the HTTP handler.
+   If the transport owns an `HttpClient`, register it with
+   `AddHttpClient<...>().AddStandardResilienceHandler()`.
 
-6. **Update documentation:** List the new transport in the README table.
+6. **Add tests** in `tests/MailVolt.Transport.Tests/`: mapping tests against the `internal
+   static` seam, DI-registration tests in `TransportDiTests`, a case in
+   `ConfigurationBindingTests`, and an entry in `CancellationSemanticsTests`.
+
+7. **Wire it into AutoConfigure:** add a `MailVoltTransport` enum value and a `WireTransport`
+   case, then add it to the theory data in `tests/MailVolt.AutoConfigure.Tests/AllTransportsTests.cs`.
+
+8. **Document it:** add `docs/senders/yourprovider.md`, and add rows to the tables in
+   `README.md` and `docs/README.md`. Any code you put in the docs must also go in
+   `tests/MailVolt.Docs.Snippets`, which compiles every documented snippet in CI.
 
 ## Releasing
 

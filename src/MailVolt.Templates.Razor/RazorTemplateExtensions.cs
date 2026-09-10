@@ -1,8 +1,8 @@
 // ReSharper disable once CheckNamespace
 
+using MailVolt.Templates.Razor;
 using System.Diagnostics;
 using System.Reflection;
-using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
@@ -10,7 +10,10 @@ using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace MailVolt.Templates.Razor.DependencyInjection;
+// All MailVolt registration extensions live in MailVolt.Core.DependencyInjection, so one
+// using covers AddMailVolt and every transport and template engine.
+// ReSharper disable once CheckNamespace
+namespace MailVolt.Core.DependencyInjection;
 /// <summary>
 /// Extension methods for registering the Razor template renderer.
 /// </summary>
@@ -53,9 +56,14 @@ public static class RazorTemplateExtensions
         }
 
         builder.Services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-        var diagnostics = new DiagnosticListener("Microsoft.AspNetCore");
-        builder.Services.TryAddSingleton<DiagnosticSource>(diagnostics);
-        builder.Services.TryAddSingleton<DiagnosticListener>(diagnostics);
+        // Registered once and forwarded: adding the same instance under two descriptors
+        // makes the container dispose it twice on shutdown. The container owns the
+        // listener's lifetime from here.
+#pragma warning disable CA2000 // Ownership transfers to the service provider.
+        builder.Services.TryAddSingleton(new DiagnosticListener("Microsoft.AspNetCore"));
+#pragma warning restore CA2000
+        builder.Services.TryAddSingleton<DiagnosticSource>(
+            sp => sp.GetRequiredService<DiagnosticListener>());
         builder.Services.AddTransient<ITemplateRenderer, RazorTemplateRenderer>();
 
         if (configure is not null)

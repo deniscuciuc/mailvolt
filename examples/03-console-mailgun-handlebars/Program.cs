@@ -1,9 +1,6 @@
 using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
 using MailVolt.Core.Models;
-using MailVolt.Templates.Handlebars.DependencyInjection;
-using MailVolt.Testing.DependencyInjection;
-using MailVolt.Transport.Mailgun.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

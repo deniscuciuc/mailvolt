@@ -28,66 +28,83 @@ public sealed class AzureEmailSender : ISender
 
         try
         {
-            var senderAddress = email.From?.Address
-                                ?? throw new InvalidOperationException(
-                                    "The From address is required when sending via Azure Email.");
-
-            var recipients = new Azure.Communication.Email.EmailRecipients(
-                MapAddresses(email.To),
-                MapAddresses(email.Cc),
-                MapAddresses(email.Bcc));
-
-            var content = new Azure.Communication.Email.EmailContent(email.Subject);
-
-            if (email.HtmlBody is { Length: > 0 } html)
-            {
-                content.Html = html;
-            }
-
-            if (email.TextBody is { Length: > 0 } text)
-            {
-                content.PlainText = text;
-            }
-
-            var attachments = new List<Azure.Communication.Email.EmailAttachment>(email.Attachments.Count);
-
-            foreach (var attachment in email.Attachments)
-            {
-                await using var ms = new MemoryStream();
-                await attachment.Content.CopyToAsync(ms, cancellationToken);
-                var binaryData = BinaryData.FromBytes(ms.ToArray());
-
-                var azureAttachment = new Azure.Communication.Email.EmailAttachment(
-                    attachment.FileName,
-                    attachment.ContentType,
-                    binaryData);
-
-                attachments.Add(azureAttachment);
-            }
-
-            var azureMessage = new Azure.Communication.Email.EmailMessage(senderAddress, recipients, content);
-
-            foreach (var azureAttachment in attachments)
-            {
-                azureMessage.Attachments.Add(azureAttachment);
-            }
-
-            foreach (var header in email.Headers)
-            {
-                azureMessage.Headers[header.Key] = header.Value;
-            }
+            var azureMessage = BuildAzureMessage(email);
 
             var operation = await _client.SendAsync(
                 Azure.WaitUntil.Completed,
                 azureMessage,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             return EmailResult.Success(operation.Id);
         }
-        catch (Exception ex)
+        // Cancellation propagates rather than becoming a send failure: every MailVolt
+        // transport behaves the same way, so swapping providers does not change how a
+        // cancelled send is observed.
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return EmailResult.Failure(ex.Message, ex);
         }
+    }
+
+    /// <summary>
+    /// Maps an <see cref="EmailMessage"/> onto an Azure Communication Services message.
+    /// </summary>
+    /// <remarks>Internal so the mapping can be unit tested without an Azure resource.</remarks>
+    internal static Azure.Communication.Email.EmailMessage BuildAzureMessage(EmailMessage email)
+    {
+        var senderAddress = email.From?.Address
+                            ?? throw new InvalidOperationException(
+                                "The From address is required when sending via Azure Email.");
+
+        var recipients = new Azure.Communication.Email.EmailRecipients(
+            MapAddresses(email.To),
+            MapAddresses(email.Cc),
+            MapAddresses(email.Bcc));
+
+        var content = new Azure.Communication.Email.EmailContent(email.Subject);
+
+        if (email.HtmlBody is { Length: > 0 } html)
+        {
+            content.Html = html;
+        }
+
+        if (email.TextBody is { Length: > 0 } text)
+        {
+            content.PlainText = text;
+        }
+
+        var azureMessage = new Azure.Communication.Email.EmailMessage(senderAddress, recipients, content);
+
+        // Previously dropped, so a Reply-To was silently lost on this transport.
+        if (email.ReplyTo is not null)
+        {
+            azureMessage.ReplyTo.Add(
+                new Azure.Communication.Email.EmailAddress(email.ReplyTo.Address, email.ReplyTo.DisplayName));
+        }
+
+        foreach (var attachment in email.Attachments)
+        {
+            var azureAttachment = new Azure.Communication.Email.EmailAttachment(
+                attachment.FileName,
+                attachment.ContentType,
+                BinaryData.FromBytes(attachment.Content));
+
+            // Inline images were previously sent as ordinary attachments, so a cid:
+            // reference in the HTML never resolved.
+            if (attachment.IsInline)
+            {
+                azureAttachment.ContentId = attachment.ContentId;
+            }
+
+            azureMessage.Attachments.Add(azureAttachment);
+        }
+
+        foreach (var header in email.Headers)
+        {
+            azureMessage.Headers[header.Key] = header.Value;
+        }
+
+        return azureMessage;
     }
 
     private static List<Azure.Communication.Email.EmailAddress> MapAddresses(IReadOnlyList<EmailAddress> addresses)

@@ -3,12 +3,12 @@
     <PackageId>MailVolt.Transport.Resend</PackageId>
 
     <Description>Resend transport for MailVolt</Description>
-    <NoWarn>CS1591</NoWarn>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Resend" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.Extensions.Options" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="MailVolt.Transport.Tests" />

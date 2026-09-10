@@ -1,6 +1,7 @@
 using AwesomeAssertions;
 using AwesomeAssertions.Execution;
 using AwesomeAssertions.Primitives;
+using MailVolt.Core.Transports;
 
 namespace MailVolt.Testing;
 

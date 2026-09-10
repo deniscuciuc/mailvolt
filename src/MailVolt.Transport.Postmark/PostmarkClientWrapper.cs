@@ -32,6 +32,9 @@ internal sealed class PostmarkClientWrapper(string serverToken, string apiBaseUr
         PostmarkMessage message,
         CancellationToken cancellationToken = default)
     {
-        return _client.SendMessageAsync(message);
+        // Postmark's client takes no CancellationToken, so the await is bounded by the
+        // token rather than ignoring it as this wrapper previously did. The in-flight
+        // request still completes on Postmark's side.
+        return _client.SendMessageAsync(message).WaitAsync(cancellationToken);
     }
 }

@@ -1,11 +1,11 @@
 using AwesomeAssertions;
 using MailVolt.Core.Interfaces;
 using MailVolt.Core.Options;
-using MailVolt.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Xunit;
+using MailVolt.Core.Transports;
 
 namespace MailVolt.AutoConfigure.Tests;
 
@@ -72,10 +72,15 @@ public sealed class AutoConfigureTests
         services.AddLogging();
         services.AddMailVolt(config);
 
-        // Verify the service descriptor is present for ITemplateRenderer
         var descriptor = services.FirstOrDefault(s => s.ServiceType == rendererInterface);
         descriptor.Should().NotBeNull();
-        descriptor.Lifetime.Should().Be(ServiceLifetime.Transient);
+
+        // Handlebars is a singleton so its compiled-template cache and registered helpers
+        // are shared rather than rebuilt per resolve; the other engines hold no state.
+        var expectedLifetime = templateEngine == "Handlebars"
+            ? ServiceLifetime.Singleton
+            : ServiceLifetime.Transient;
+        descriptor.Lifetime.Should().Be(expectedLifetime);
     }
 
     [Fact]

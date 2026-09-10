@@ -41,7 +41,13 @@ public sealed class BrevoSender : IBrevoSender
             cancellationToken.ThrowIfCancellationRequested();
 
             var request = BuildSendSmtpEmail(email);
-            var result = await _api.SendTransacEmailAsync(request).ConfigureAwait(false);
+
+            // Brevo's generated client takes no CancellationToken, so the await is bounded
+            // by the token rather than ignoring it as this sender previously did. The
+            // in-flight request still completes on Brevo's side.
+            var result = await _api.SendTransacEmailAsync(request)
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
 
             return EmailResult.Success(result?.MessageId);
         }
@@ -49,7 +55,7 @@ public sealed class BrevoSender : IBrevoSender
         {
             throw;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return EmailResult.Failure(ex.Message, ex);
         }
@@ -69,9 +75,8 @@ public sealed class BrevoSender : IBrevoSender
 
         foreach (var attachment in email.Attachments)
         {
-            using var ms = new MemoryStream();
-            attachment.Content.CopyTo(ms);
-            attachments.Add(new SendSmtpEmailAttachment(null, ms.ToArray(), attachment.FileName));
+            attachments.Add(
+                new SendSmtpEmailAttachment(null, attachment.Content.ToArray(), attachment.FileName));
         }
 
         return new SendSmtpEmail(

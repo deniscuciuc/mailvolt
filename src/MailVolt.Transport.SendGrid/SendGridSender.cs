@@ -68,7 +68,7 @@ internal sealed partial class SendGridSender : ISendGridSender
             _logger.LogWarning("Email sending via SendGrid was cancelled.");
             throw;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogSendGridException(ex);
             return EmailResult.Failure(ex.Message, ex);
@@ -140,9 +140,7 @@ internal sealed partial class SendGridSender : ISendGridSender
         {
             foreach (var attachment in email.Attachments)
             {
-                using var memoryStream = new MemoryStream();
-                attachment.Content.CopyTo(memoryStream);
-                var base64Content = Convert.ToBase64String(memoryStream.ToArray());
+                var base64Content = Convert.ToBase64String(attachment.Content.Span);
 
                 message.AddAttachment(
                     attachment.FileName,

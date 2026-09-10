@@ -14,7 +14,7 @@ dotnet add package MailVolt.Transport.Postmark
 using MailVolt.Core.DependencyInjection;
 
 builder.Services.AddMailVolt()
-    .AddPostmarkSender(options =>
+    .UsePostmarkTransport(options =>
     {
         options.ApiKey = "your-server-token";
     });

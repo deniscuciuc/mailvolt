@@ -20,7 +20,7 @@ public sealed class SendGridSenderTests
         BaseUrl = "https://api.sendgrid.com"
     };
 
-    private static ILogger<SendGridSender> CreateLogger()
+    private static NullLogger<SendGridSender> CreateLogger()
         => NullLogger<SendGridSender>.Instance;
 
     private static SendGridSenderOptions CloneOptions(Action<SendGridSenderOptions>? configure = null)

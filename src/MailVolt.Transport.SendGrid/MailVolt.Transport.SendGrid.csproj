@@ -3,14 +3,14 @@
     <PackageId>MailVolt.Transport.SendGrid</PackageId>
 
     <Description>SendGrid transport for MailVolt</Description>
-    <NoWarn>CS1591</NoWarn>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Http" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
     <PackageReference Include="SendGrid" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="SendGrid.Extensions.DependencyInjection" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MailVolt.Core\MailVolt.Core.csproj" />

@@ -50,27 +50,45 @@ public sealed class RazorTemplateRenderer : ITemplateRenderer
         TModel model,
         CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(template);
+        cancellationToken.ThrowIfCancellationRequested();
+
         var actionContext = GetActionContext();
 
-        // First try to resolve the view by name (FindView falls back to
-        // search paths). If that fails, try an explicit application-relative path.
+        // Resolve by view name first — FindView searches the configured view locations.
         var viewResult = _viewEngine.FindView(actionContext, template, isMainPage: false);
+
         if (!viewResult.Success)
         {
-            viewResult = _viewEngine.GetView(
-                null,
-                template,
-                isMainPage: false);
+            // Then as a path, relative to RootDirectory if one is configured. Without this,
+            // RootDirectory was a public, documented, configurable option that nothing read.
+            // The FindView result is kept for the error message, since it carries the
+            // searched locations.
+            foreach (var candidate in CandidatePaths(template))
+            {
+                var byPath = _viewEngine.GetView(executingFilePath: null, candidate, isMainPage: false);
+                if (byPath?.Success == true)
+                {
+                    viewResult = byPath;
+                    break;
+                }
+            }
         }
 
         if (!viewResult.Success || viewResult.View is null)
         {
+            var searched = viewResult.SearchedLocations ?? [];
+            var root = _options.RootDirectory is { Length: > 0 } configured
+                ? $" RootDirectory: '{configured}'."
+                : string.Empty;
+
             throw new InvalidOperationException(
-                $"Razor view '{template}' could not be found. " +
-                $"Searched locations: {string.Join(", ", viewResult.SearchedLocations ?? [])}");
+                $"Razor view '{template}' could not be found.{root} " +
+                $"Searched locations: {string.Join(", ", searched)}");
         }
 
-        await using var writer = new StringWriter();
+        var writer = new StringWriter();
+        await using var writerScope = writer.ConfigureAwait(false);
         var viewContext = new ViewContext(
             actionContext,
             viewResult.View,
@@ -84,8 +102,30 @@ public sealed class RazorTemplateRenderer : ITemplateRenderer
             writer,
             new HtmlHelperOptions());
 
-        await viewResult.View.RenderAsync(viewContext);
+        await viewResult.View.RenderAsync(viewContext).ConfigureAwait(false);
         return writer.ToString();
+    }
+
+    /// <summary>
+    /// The paths to try for a template that did not resolve as a view name, in order.
+    /// </summary>
+    private IEnumerable<string> CandidatePaths(string template)
+    {
+        yield return template;
+
+        if (Path.IsPathRooted(template) || _options.RootDirectory is not { Length: > 0 } root)
+        {
+            yield break;
+        }
+
+        yield return Path.Combine(root, template);
+
+        // Razor's view engine treats a path without an extension as a view name, so a
+        // RootDirectory-relative template usually needs the extension appended.
+        if (!Path.HasExtension(template))
+        {
+            yield return Path.Combine(root, template + ".cshtml");
+        }
     }
 
     private ActionContext GetActionContext()

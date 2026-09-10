@@ -11,7 +11,6 @@ dotnet add package MailVolt.Transport.AzureEmail
 ## Registration
 
 ```csharp
-using MailVolt.Core.DependencyInjection;
 
 builder.Services.AddMailVolt()
     .UseAzureEmailTransport(options =>
@@ -25,7 +24,7 @@ Or bind from configuration:
 ```csharp
 builder.Services.AddMailVolt()
     .UseAzureEmailTransport(
-        builder.Configuration.GetSection("MailVolt:Azure"));
+        builder.Configuration);
 ```
 
 ## Options

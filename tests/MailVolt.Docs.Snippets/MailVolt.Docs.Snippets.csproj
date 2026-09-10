@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <!--
+      Not a test project: it exists only to compile the code shown in README.md and docs/,
+      so a snippet that cannot build fails CI rather than a reader's editor. Single TFM,
+      since the snippets are about API shape rather than per-framework behaviour.
+    -->
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>false</IsTestProject>
+    <OutputType>Library</OutputType>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <!-- Snippets are illustrative: they are not a public API surface and deliberately show
+         the shortest form a reader would write. -->
+    <NoWarn>$(NoWarn);CS1591;CA1050;CA1707;CA2007;CA1062;CA1861</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MailVolt.Core\MailVolt.Core.csproj" />
+    <ProjectReference Include="..\..\src\MailVolt.AutoConfigure\MailVolt.AutoConfigure.csproj" />
+    <ProjectReference Include="..\..\src\MailVolt.Testing\MailVolt.Testing.csproj" />
+  </ItemGroup>
+</Project>

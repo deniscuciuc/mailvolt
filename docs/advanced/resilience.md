@@ -1,10 +1,30 @@
 # Resilience
 
-MailVolt HTTP-based transports (Mailgun, SendGrid, Resend, Postmark, Brevo) use `Microsoft.Extensions.Http.Resilience` for built-in HTTP resilience.
+Retries, circuit breaking and timeouts come from
+`Microsoft.Extensions.Http.Resilience` — but only for the transports that own their own
+`HttpClient`. The rest rely on their vendor SDK's own retry policy, which MailVolt does not
+control.
 
-## Standard Resilience Pipeline
+## Which transport gets what
 
-Transports register typed `HttpClient` instances with `AddStandardResilienceHandler()`:
+| Transport | Resilience | Source |
+|---|---|---|
+| Mailgun | `AddStandardResilienceHandler()` | MailVolt registers the typed `HttpClient` |
+| Resend | `AddStandardResilienceHandler()` | MailVolt registers the typed `HttpClient` |
+| SendGrid | `AddStandardResilienceHandler()` | MailVolt attaches the handler to the SDK's named client |
+| Postmark | Vendor SDK default | `Postmark` client, no `HttpClient` factory |
+| Brevo | Vendor SDK default | `brevo_csharp` client, no `HttpClient` factory |
+| Azure Email | Azure SDK retry policy | `Azure.Communication.Email`, configurable via `EmailClientOptions` |
+| AWS SES | AWS SDK retry policy | `AWSSDK.SimpleEmailV2`, configurable via the client config |
+| SMTP | None | MailKit opens a connection per send; wrap `SendAsync` yourself if you need retries |
+
+For SMTP there is deliberately no built-in retry: re-sending a message that may already have
+been accepted risks a duplicate. If you need retries there, do it at the level where you know
+whether a duplicate is acceptable.
+
+## Standard resilience pipeline
+
+Transports that own an `HttpClient` register it with `AddStandardResilienceHandler()`:
 
 ```csharp
 builder.Services

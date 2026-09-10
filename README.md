@@ -1,7 +1,8 @@
 # MailVolt
 
 [![CI](https://github.com/deniscuciuc/mailvolt/actions/workflows/ci.yml/badge.svg)](https://github.com/deniscuciuc/mailvolt/actions/workflows/ci.yml)
-[![NuGet](https://img.shields.io/nuget/v/MailVolt.Core.svg)](https://www.nuget.org/packages/MailVolt.Core/)
+[![NuGet](https://img.shields.io/nuget/v/MailVolt.Core.svg?label=MailVolt.Core)](https://www.nuget.org/packages/MailVolt.Core/)
+[![NuGet](https://img.shields.io/nuget/v/MailVolt.AutoConfigure.svg?label=MailVolt.AutoConfigure)](https://www.nuget.org/packages/MailVolt.AutoConfigure/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Codecov](https://codecov.io/gh/deniscuciuc/mailvolt/branch/main/graph/badge.svg)](https://codecov.io/gh/deniscuciuc/mailvolt)
 
@@ -9,18 +10,23 @@
 
 ## Why MailVolt?
 
-| FluentEmail Problem | MailVolt Solution |
+| FluentEmail | MailVolt |
 |---|---|
-| Abandoned since 2022 | Actively maintained |
-| No async API | Async-only from day one |
-| No DI-first design | DI-first with `MailVoltBuilder` |
-| No batch sending | `IBatchEmailSender` with concurrency control |
+| Unmaintained since 2022 | Actively maintained |
+| Sync API with async wrappers | Async-only from day one |
+| Static `Email.From(...)` entry point | DI-first with `MailVoltBuilder` |
+| No batch sending | `IBatchEmailSender` with concurrency control and rate limiting |
 | No SendGrid inline images | Supported |
-| No Mailgun ReplyTo | Fixed |
-| No test helpers | `InMemorySender` + FluentAssertions |
-| RazorLight dependency | Native ASP.NET Core Razor |
+| Mailgun ignores `ReplyTo` | Fixed |
+| No test helpers | `InMemorySender` plus fluent assertions |
+| Razor via RazorLight | Native ASP.NET Core Razor |
 
-## Quick Start (AutoConfigure)
+See [Migrating from FluentEmail](./docs/migrating-from-fluentemail.md).
+
+Targets **net8.0**, **net9.0** and **net10.0**. Building from source needs the **.NET 10 SDK**
+(the DI extensions use C# 14 extension members); consuming the packages does not.
+
+## Quick start — zero code
 
 ```
 dotnet add package MailVolt.AutoConfigure
@@ -33,7 +39,7 @@ dotnet add package MailVolt.AutoConfigure
     "Transport": "Smtp",
     "Templates": "Razor",
     "Smtp": {
-      "Host": "smtp.mailtrap.io",
+      "Host": "smtp.example.com",
       "Port": 587,
       "Username": "USER",
       "Password": "PASS"
@@ -43,109 +49,163 @@ dotnet add package MailVolt.AutoConfigure
 ```
 
 ```csharp
-// Program.cs — one line, everything from config
+// Program.cs — everything comes from configuration
 builder.Services.AddMailVolt(builder.Configuration);
 ```
 
-Switch providers without changing code — just update `Transport` in config and add the matching section.
-Supports: `Smtp` · `SendGrid` · `Mailgun` · `Resend` · `Postmark` · `Azure` · `Brevo` · `AwsSes` · `InMemory`
+Switch providers by changing `Transport` and adding the matching section — no code change.
+Supports `Smtp` · `SendGrid` · `Mailgun` · `Resend` · `Postmark` · `Azure` · `Brevo` ·
+`AwsSes` · `InMemory`. See [docs/autoconfigure.md](./docs/autoconfigure.md) for every option.
 
-## Quick Start
+## Quick start — explicit registration
+
+```
+dotnet add package MailVolt.Core
+dotnet add package MailVolt.Transport.Smtp
+```
 
 ```csharp
-// 1. Install
-// dotnet add package MailVolt.Core
-// dotnet add package MailVolt.Transport.Smtp
+using MailVolt.Core.DependencyInjection;
 
-// 2. Register
-services.AddMailVolt()
+// One using covers AddMailVolt and every transport and template engine.
+builder.Services.AddMailVolt()
     .UseSmtpTransport(options =>
     {
         options.Host = "smtp.example.com";
         options.Username = "user";
         options.Password = "pass";
     });
-
-// 3. Send
-var builder = services.GetRequiredService<IEmailBuilder>();
-var result = await builder
-    .From("sender@example.com")
-    .To("recipient@example.com")
-    .Subject("Hello from MailVolt!")
-    .HtmlBody("<h1>Welcome!</h1>")
-    .SendAsync();
 ```
 
-## Installation
+```csharp
+using MailVolt.Core.Interfaces;
 
-| Package | Command |
+public sealed class WelcomeService(IEmailBuilder email)
+{
+    public async Task SendAsync(string recipient, CancellationToken cancellationToken)
+    {
+        var result = await email
+            .From("sender@example.com")
+            .To(recipient)
+            .Subject("Hello from MailVolt!")
+            .HtmlBody("<h1>Welcome!</h1>")
+            .SendAsync(cancellationToken);
+
+        if (result.IsFailure)
+        {
+            throw new InvalidOperationException(result.Error);
+        }
+    }
+}
+```
+
+`IEmailBuilder` is registered transient, so inject a fresh one per send. Do not hold one and
+reuse it across messages — see [docs/troubleshooting.md](./docs/troubleshooting.md).
+
+## Packages
+
+| Package | Purpose |
 |---|---|
-| Core | `dotnet add package MailVolt.Core` |
-| `MailVolt.AutoConfigure` | Zero-code setup — configure everything via appsettings.json |
-| Testing | `dotnet add package MailVolt.Testing` |
-| Templates: Razor | `dotnet add package MailVolt.Templates.Razor` |
-| Templates: Liquid | `dotnet add package MailVolt.Templates.Liquid` |
-| Templates: Handlebars | `dotnet add package MailVolt.Templates.Handlebars` |
+| [`MailVolt.Core`](https://www.nuget.org/packages/MailVolt.Core/) | Abstractions, fluent builder, batch sender, in-memory transport |
+| [`MailVolt.AutoConfigure`](https://www.nuget.org/packages/MailVolt.AutoConfigure/) | Zero-code setup from `appsettings.json` |
+| [`MailVolt.Testing`](https://www.nuget.org/packages/MailVolt.Testing/) | AwesomeAssertions extensions for asserting on sent mail |
 
-## Senders
+Transports: `MailVolt.Transport.{Smtp,SendGrid,Mailgun,Resend,Postmark,AzureEmail,Brevo,AwsSes}`.
+Templates: `MailVolt.Templates.{Razor,Liquid,Handlebars}`.
 
-| Provider | Package | Docs |
-|---|---|---|
-| SMTP (MailKit) | `MailVolt.Transport.Smtp` | [docs](./docs/senders/smtp.md) |
-| SendGrid | `MailVolt.Transport.SendGrid` | [docs](./docs/senders/sendgrid.md) |
-| Mailgun | `MailVolt.Transport.Mailgun` | [docs](./docs/senders/mailgun.md) |
-| Resend | `MailVolt.Transport.Resend` | [docs](./docs/senders/resend.md) |
-| Postmark | `MailVolt.Transport.Postmark` | [docs](./docs/senders/postmark.md) |
-| Azure Email | `MailVolt.Transport.AzureEmail` | [docs](./docs/senders/azure.md) |
-| Brevo | `MailVolt.Transport.Brevo` | [docs](./docs/senders/brevo.md) |
-| AWS SES | `MailVolt.Transport.AwsSes` | [docs](./docs/senders/aws-ses.md) |
+## Transports
+
+| Provider | Package | Registration | Docs |
+|---|---|---|---|
+| SMTP (MailKit) | `MailVolt.Transport.Smtp` | `UseSmtpTransport` | [docs](./docs/senders/smtp.md) |
+| SendGrid | `MailVolt.Transport.SendGrid` | `UseSendGridTransport` | [docs](./docs/senders/sendgrid.md) |
+| Mailgun | `MailVolt.Transport.Mailgun` | `UseMailgunTransport` | [docs](./docs/senders/mailgun.md) |
+| Resend | `MailVolt.Transport.Resend` | `UseResendTransport` | [docs](./docs/senders/resend.md) |
+| Postmark | `MailVolt.Transport.Postmark` | `UsePostmarkTransport` | [docs](./docs/senders/postmark.md) |
+| Azure Email | `MailVolt.Transport.AzureEmail` | `UseAzureEmailTransport` | [docs](./docs/senders/azure.md) |
+| Brevo | `MailVolt.Transport.Brevo` | `UseBrevoTransport` | [docs](./docs/senders/brevo.md) |
+| AWS SES | `MailVolt.Transport.AwsSes` | `UseAwsSesTransport` | [docs](./docs/senders/aws-ses.md) |
+| In-memory | `MailVolt.Core` | `UseInMemoryTransport` | [docs](./docs/advanced/testing.md) |
 
 ## Templates
 
-| Engine | Package | Docs |
-|---|---|---|
-| Razor (.cshtml) | `MailVolt.Templates.Razor` | [docs](./docs/templates/razor.md) |
-| Liquid | `MailVolt.Templates.Liquid` | [docs](./docs/templates/liquid.md) |
-| Handlebars | `MailVolt.Templates.Handlebars` | [docs](./docs/templates/handlebars.md) |
+| Engine | Package | Registration | Docs |
+|---|---|---|---|
+| Razor (`.cshtml`) | `MailVolt.Templates.Razor` | `UseRazorTemplates` | [docs](./docs/templates/razor.md) |
+| Liquid | `MailVolt.Templates.Liquid` | `UseLiquidTemplates` | [docs](./docs/templates/liquid.md) |
+| Handlebars | `MailVolt.Templates.Handlebars` | `UseHandlebarsTemplates` | [docs](./docs/templates/handlebars.md) |
 
-## Batch Sending
+## Batch sending
 
 ```csharp
-var batchSender = services.GetRequiredService<IBatchEmailSender>();
+using MailVolt.Core.Interfaces;
 
-var result = await batchSender.SendBatchAsync(emails, new BatchSendOptions
+public sealed class DigestService(IBatchEmailSender batchSender)
 {
-    MaxConcurrency = 10,
-    FailureStrategy = FailureStrategy.Continue
-});
-
-Console.WriteLine($"Sent {result.SentCount}/{result.TotalCount}");
+    public async Task<BatchEmailResult> SendAsync(
+        IReadOnlyList<EmailMessage> emails,
+        CancellationToken cancellationToken)
+    {
+        return await batchSender.SendBatchAsync(emails, new BatchSendOptions(
+            MaxConcurrency: 10,
+            DelayMs: 200,
+            FailureStrategy: FailureStrategy.Continue), cancellationToken);
+    }
+}
 ```
+
+`SentCount`, `FailedCount` and `SkippedCount` always sum to `TotalCount`.
+See [docs/advanced/batch-sending.md](./docs/advanced/batch-sending.md).
 
 ## Testing
 
-```csharp
-// Arrange
-services.AddMailVolt().UseInMemoryTransport();
-var sender = services.GetRequiredService<InMemorySender>();
-
-// Act
-await service.SendEmailAsync();
-
-// Assert
-sender.Should().HaveCount(1);
-sender.Should().ContainEmailTo("user@example.com");
-sender.Should().ContainSubject("Welcome!");
 ```
+dotnet add package MailVolt.Testing
+```
+
+```csharp
+using MailVolt.Core.DependencyInjection;
+using MailVolt.Core.Transports;
+using MailVolt.Testing;
+
+var services = new ServiceCollection();
+services.AddMailVolt().UseInMemoryTransport();
+await using var provider = services.BuildServiceProvider();
+
+var sender = provider.GetRequiredService<InMemorySender>();
+
+await provider.GetRequiredService<WelcomeService>().SendAsync("user@example.com", default);
+
+sender.Should()
+    .HaveCount(1)
+    .ContainEmailTo("user@example.com")
+    .ContainSubject("Welcome!");
+```
+
+See [docs/advanced/testing.md](./docs/advanced/testing.md).
 
 ## Documentation
 
-- [Getting Started](./docs/getting-started.md)
-- [Senders](./docs/senders/smtp.md)
-- [Templates](./docs/templates/razor.md)
-- [Batch Sending](./docs/advanced/batch-sending.md)
+- [Getting started](./docs/getting-started.md)
+- [Configuration reference](./docs/autoconfigure.md)
+- [Migrating from FluentEmail](./docs/migrating-from-fluentemail.md)
+- [Troubleshooting](./docs/troubleshooting.md)
+- [Attachments and inline images](./docs/advanced/attachments.md)
+- [Batch sending](./docs/advanced/batch-sending.md)
 - [Resilience](./docs/advanced/resilience.md)
 - [Testing](./docs/advanced/testing.md)
+- [Full index](./docs/README.md)
+
+## Versioning and support
+
+MailVolt follows [Semantic Versioning](https://semver.org/). While the version is below
+`1.0.0` the public API may still change between minor releases; breaking changes are called
+out in [CHANGELOG.md](./CHANGELOG.md). All packages are versioned and released together.
+
+## Contributing
+
+Issues and pull requests are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md),
+[CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) and [SECURITY.md](./SECURITY.md).
 
 ## License
 

@@ -27,7 +27,7 @@ Or bind from configuration:
 ```csharp
 builder.Services.AddMailVolt()
     .UseAwsSesTransport(
-        builder.Configuration.GetSection("MailVolt:AwsSes"));
+        builder.Configuration);
 ```
 
 ## Options

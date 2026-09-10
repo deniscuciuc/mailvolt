@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <IsPackable>false</IsPackable>
-    <NoWarn>CS1591;CS8600;CS8602;CS8625;CS8714</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;CS8600;CS8602;CS8625;CS8714</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/MailVolt.AutoConfigure/MailVolt.AutoConfigure.csproj" />

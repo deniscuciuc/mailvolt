@@ -1,13 +1,12 @@
 using MailVolt.Core.DependencyInjection;
 using MailVolt.Core.Interfaces;
-using MailVolt.Testing.DependencyInjection;
 using MailVolt.Transport.Resend;
-using MailVolt.Transport.Resend.DependencyInjection;
 using MailVolt.Transport.Smtp;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using MailVolt.Core.Transports;
 
 var dryRun = args.Contains("--dry-run");
 
@@ -29,7 +28,7 @@ var host = Host.CreateDefaultBuilder(args)
         }
 
         // Register Resend as the primary transport
-        mv.UseResend();
+        mv.UseResendTransport();
 
         // Register SMTP as the fallback transport
         services.AddOptions<SmtpSenderOptions>()
