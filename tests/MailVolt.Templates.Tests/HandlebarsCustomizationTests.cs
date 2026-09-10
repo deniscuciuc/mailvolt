@@ -20,7 +20,7 @@ public sealed class HandlebarsCustomizationTests
     {
         var renderer = Renderer(options => options.RegisterHelper("uppercase",
             (writer, _, parameters) =>
-                writer.WriteSafeString(parameters[0].ToString()!.ToUpperInvariant())));
+                writer.WriteSafeString(parameters[0]?.ToString()?.ToUpperInvariant() ?? string.Empty)));
 
         var result = await renderer.RenderAsync("{{uppercase title}}", new { title = "welcome" });
 
@@ -33,7 +33,7 @@ public sealed class HandlebarsCustomizationTests
         var renderer = Renderer(options => options.RegisterHelper("formatDate",
             (writer, _, parameters) =>
                 writer.WriteSafeString(
-                    DateTime.Parse(parameters[0].ToString()!, System.Globalization.CultureInfo.InvariantCulture)
+                    DateTime.Parse(parameters[0]?.ToString() ?? string.Empty, System.Globalization.CultureInfo.InvariantCulture)
                         .ToString("MMMM dd, yyyy", System.Globalization.CultureInfo.InvariantCulture))));
 
         var result = await renderer.RenderAsync(

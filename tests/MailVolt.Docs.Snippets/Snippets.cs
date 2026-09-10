@@ -125,12 +125,13 @@ public static class HandlebarsSnippets
             {
                 options.RegisterHelper("formatDate", (writer, _, parameters) =>
                 {
-                    var date = DateTime.Parse(parameters[0].ToString()!, CultureInfo.InvariantCulture);
+                    var date = DateTime.Parse(
+                        parameters[0]?.ToString() ?? string.Empty, CultureInfo.InvariantCulture);
                     writer.WriteSafeString(date.ToString("MMMM dd, yyyy", CultureInfo.InvariantCulture));
                 });
 
                 options.RegisterHelper("uppercase", (writer, _, parameters) =>
-                    writer.WriteSafeString(parameters[0].ToString()!.ToUpperInvariant()));
+                    writer.WriteSafeString(parameters[0]?.ToString()?.ToUpperInvariant() ?? string.Empty));
             });
 
         services.AddMailVolt()
