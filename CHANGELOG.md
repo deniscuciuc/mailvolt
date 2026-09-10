@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-10
+
+### Changed
+
+- New package icon. The previous one had opaque black corners, which nuget.org renders on a
+  light background — visible on every package page. The new mark integrates the lightning
+  bolt into the envelope's flap crease so it reads as one silhouette at the 32px size
+  nuget.org uses in search results, and its corners are transparent.
+- Added a banner to the root README and to all 14 per-package READMEs.
+
 ## [0.1.0] - 2026-09-10
 
 First stable release. The API is settled; changes from `0.1.0-preview.3` are listed below.
@@ -140,7 +150,8 @@ First stable release. The API is settled; changes from `0.1.0-preview.3` are lis
 - `MailVolt.AutoConfigure` for zero-code `appsettings.json` setup.
 - `MailVolt.Testing` with `InMemorySender`, `FailingSender`, and FluentAssertions extensions.
 
-[Unreleased]: https://github.com/deniscuciuc/mailvolt/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/deniscuciuc/mailvolt/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/deniscuciuc/mailvolt/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/deniscuciuc/mailvolt/compare/v0.1.0-preview.3...v0.1.0
 [0.1.0-preview.3]: https://github.com/deniscuciuc/mailvolt/compare/v0.1.0-preview.2...v0.1.0-preview.3
 [0.1.0-preview.2]: https://github.com/deniscuciuc/mailvolt/compare/v0.1.0-preview.1...v0.1.0-preview.2
