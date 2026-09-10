@@ -25,11 +25,11 @@ jobs:
     name: Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.x'
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-ubuntu-latest-${{ hashFiles('Directory.Packages.props') }}
@@ -49,12 +49,12 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           # MinVer needs the full history to compute a version.
           fetch-depth: 0
 
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           # net8.0 and net9.0 runtimes are needed to *run* those test legs; the 10 SDK
           # builds all three target frameworks.
@@ -63,7 +63,7 @@ jobs:
             9.x
             10.x
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-${{ matrix.os }}-${{ hashFiles('Directory.Packages.props') }}
@@ -82,7 +82,7 @@ jobs:
           --collect:"XPlat Code Coverage"
           --results-directory ./coverage
 
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v7
         if: matrix.os == 'ubuntu-latest'
         with:
           directory: ./coverage
@@ -94,11 +94,11 @@ jobs:
     name: Integration tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.x'
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-ubuntu-latest-${{ hashFiles('Directory.Packages.props') }}
