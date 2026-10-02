@@ -17,7 +17,7 @@
     <!-- Postmark -->
     <PackageVersion Include="Postmark" Version="5.4.1" />
     <!-- Resend -->
-    <PackageVersion Include="Resend" Version="0.16.0" />
+    <PackageVersion Include="Resend" Version="0.22.0" />
     <!-- SendGrid -->
     <PackageVersion Include="SendGrid" Version="9.29.3" />
     <PackageVersion Include="SendGrid.Extensions.DependencyInjection" Version="1.0.1" />
