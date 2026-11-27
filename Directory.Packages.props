@@ -23,7 +23,7 @@
     <PackageVersion Include="SendGrid.Extensions.DependencyInjection" Version="1.0.1" />
     <!-- Templates -->
     <PackageVersion Include="Fluid.Core" Version="2.40.0" />
-    <PackageVersion Include="Handlebars.Net" Version="2.4.3" />
+    <PackageVersion Include="Handlebars.Net" Version="2.5.0" />
     <!-- DI & Extensions -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
